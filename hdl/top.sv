@@ -3,7 +3,7 @@ module memory{
     input rst,
     input logic [LEN-1:0]source_addr[1:0],
     input logic [LEN-1:0]dest_addr,
-    input logic [2:0]size,
+    input logic [2:0]pim_matrix_size,
     input logic [2:0]no_of_pims,
 
     input write_en  //needed?? I think it's needed because the reading to send to PIM and writing to dest will happen in parallel. so we need a control signal. 
@@ -13,11 +13,11 @@ module memory{
   // LEN must be equal to $clog2(MEM_SIZE)
 
 logic [WIDTH-1:0] mem[MEM_SIZE-1:0];
-logic [WIDTH-1:0] result[size-1:0];
+logic [WIDTH-1:0] result[pim_matrix_size-1:0];
 
-logic [2*size-1:0][WIDTH-1:0] pimc_in[1:0];
+logic [pim_matrix_size*pim_matrix_size-1:0][WIDTH-1:0] pimc_in[1:0];
 
-logic [WIDTH-1:0] result[size-1:0];
+logic [WIDTH-1:0] result[pim_matrix_size-1:0];
 
 logic pimc_ready;
 
@@ -30,7 +30,7 @@ always_ff(posedge clk) begin
     else begin
         if(!write_en) begin
             for(int j=0;j<1;j++) begin
-                for (int i = 0; i < 2*size - 1; i++) begin
+                for (int i = 0; i < pim_matrix_size*pim_matrix_size - 1; i++) begin
                     pimc_in[j] = mem[source_addr[j] + i];
                 end 
             end
@@ -71,7 +71,7 @@ end
 always_ff(posedge clk) begin
 
     if(write_en) begin   //do we need this???
-        for (int i = 0; i < size - 1; i++) begin
+        for (int i = 0; i < pim_matrix_size*pim_matrix_size - 1; i++) begin
             mem[dest_addr + i]= result[i];
         end
     end
