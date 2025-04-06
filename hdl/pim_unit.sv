@@ -1,5 +1,5 @@
 import types::*;
-module pim
+module pim_unit
 #(
     parameter ID,
     parameter ELEM_WIDTH = 32, // Each number 32 bits
