@@ -21,38 +21,7 @@ module result_aggregator
     output logic [ELEM_WIDTH-1:0] final_result [2*PIM_MATRIX_SIZE][2*PIM_MATRIX_SIZE], //Flatten
     output logic result_ready
 );
-    /*
-    // Combine results from four 8x8 matrices into one 16x16 matrix
-    always_comb begin
-        // Top-left
-        for (int i = 0; i < PIM_MATRIX_SIZE; i++) begin
-            for (int j = 0; j < PIM_MATRIX_SIZE; j++) begin
-                final_result[(i * 2 * PIM_MATRIX_SIZE + j)] = result1[i][j];
-            end
-        end
-
-        // Top-right
-        for (int i = 0; i < PIM_MATRIX_SIZE; i++) begin
-            for (int j = PIM_MATRIX_SIZE; j < 2*PIM_MATRIX_SIZE; j++) begin
-                final_result[(i * 2 * PIM_MATRIX_SIZE + j)] = result2[i][j-PIM_MATRIX_SIZE];
-            end
-        end
-
-        // Bottom-left
-        for (int i = PIM_MATRIX_SIZE; i < 2*PIM_MATRIX_SIZE; i++) begin
-            for (int j = 0; j < PIM_MATRIX_SIZE; j++) begin
-                final_result[(i * 2 * PIM_MATRIX_SIZE + j)] = result3[i-PIM_MATRIX_SIZE][j];
-            end
-        end
-
-        // Bottom-right
-        for (int i = PIM_MATRIX_SIZE; i < 2*PIM_MATRIX_SIZE; i++) begin
-            for (int j = PIM_MATRIX_SIZE; j < 2*PIM_MATRIX_SIZE; j++) begin
-                final_result[(i * 2 * PIM_MATRIX_SIZE + j)] = result4[i-PIM_MATRIX_SIZE][j-PIM_MATRIX_SIZE];
-            end
-        end
-    end*/
-
+    
     logic [ELEM_WIDTH-1:0] reconstructed [PIM_MATRIX_SIZE*2][PIM_MATRIX_SIZE*2];
     logic all_pims_done;
 
