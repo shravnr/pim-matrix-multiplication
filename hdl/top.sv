@@ -1,10 +1,16 @@
-module memory{
+module memory
+#(
+    parameter LEN = 32,               // Data length per element
+    parameter MEM_ELEMENTS = 1024,      // Total memory entries
+    parameter MAX_MATRIX_SIZE = 16      // Supports up to 16x16 matrices
+) 
+{
     input clk,
     input rst,
-    input logic [LEN-1:0]matrix_A,
-    input logic [LEN-1:0]matrix_B,
-    input logic [LEN-1:0]dest_addr,
-    input logic [2:0]matrix_size,
+    input logic [LEN-1:0] src1_addr,
+    input logic [LEN-1:0] src2_addr,
+    input logic [LEN-1:0] dst_addr,
+    input logic [2:0] matrix_size,
     //input logic [2:0]no_of_pims,
 
     input write_en  //needed?? I think it's needed because the reading to send to PIM and writing to dest will happen in parallel. so we need a control signal. 
@@ -13,14 +19,13 @@ module memory{
 
   // LEN must be equal to $clog2(MEM_ELEMENTS)
 
-logic [WIDTH-1:0] mem[MEM_ELEMENTS-1:0];
-logic [WIDTH-1:0] result[matrix_size**2-1:0];
+    logic [WIDTH-1:0] mem[MEM_ELEMENTS-1:0];
 
-logic [WIDTH-1:0] matrix_A[matrix_size**2-1:0];
-logic [WIDTH-1:0] matrix_B[matrix_size**2-1:0];
+    logic [WIDTH-1:0] matrix_A [matrix_size**2-1:0];
+    logic [WIDTH-1:0] matrix_B [matrix_size**2-1:0];
+    logic [WIDTH-1:0] result [matrix_size**2-1:0];
 
-
-logic result_ready;
+    logic result_ready;
 
 //Address- should getting this be combinational or sequential? First thought it should be combinational because it is coming to memory independent of clock
 //ChatGPT says memory accesses should be done on clock edge, which makes a lot of sense
@@ -36,8 +41,8 @@ always_ff(posedge clk) begin
     else begin
         if(!write_en) begin
             for (int i = 0; i < matrix_size**2 - 1; i++) begin
-                matrix_A[i] <= mem[source_addr[0] + i];
-                matrix_B[i] <= mem[source_addr[1] + i];
+                matrix_A[i] <= mem[src1_addr + i];
+                matrix_B[i] <= mem[src2_addr + i];
             end 
         end
     end
@@ -51,32 +56,28 @@ end
 //will PIM-C need it? if it is not ready, then it shouldn't accept the new address. i can add the pim-c control signal as a local variable and give it as an output of pim-c.
 //then internal to pim-c, 
 
-pim_controller
-(
-               .clk(clk), //clock synchronization ensured. so I don't think modules need to be called within an always_ff (i don't think that's valid either)
-               .rst(rst), 
-               .matrix_A(matrix_A), 
-               .matrix_B(matrix_B), 
-               //.no_of_pims(no_of_pims),
-               .result(result),
-               .result_ready(result_ready)//output from PIM-C-- but does it need to communicate with memory? might need another wrapper here 
+pim_controller #(
+        .WIDTH(WIDTH),
+        .MAX_MATRIX_SIZE(MAX_MATRIX_SIZE)
+) pim_ctl (
+        .clk(clk), //clock synchronization ensured. so I don't think modules need to be called within an always_ff (i don't think that's valid either)
+        .rst(rst),
+        // .start(pim_start), 
+        .matrix_A(matrix_A), 
+        .matrix_B(matrix_B),
+        .matrix_size(matrix_size),
+        //.no_of_pims(no_of_pims),
+        .result(result),
+        .result_ready(result_ready)//output from PIM-C-- but does it need to communicate with memory? might need another wrapper here 
 );
 
-
-/*
-PIM-C would look like:
-for(i=0, i<no_of_pims,i++) begin
-    pim_c #(.ID(i))(.inputs(inputs), .outputs(outputs))
-end 
-
-*/
-
+    
 /*******************WRITE*************************/
 always_ff(posedge clk) begin
 
     if(write_en && result_ready) begin   //do we need this???
         for (int i = 0; i < matrix_size**2 - 1; i++) begin
-            mem[dest_addr + i] <= result[i];
+            mem[dst_addr + i] <= result[i];
         end
     end
 

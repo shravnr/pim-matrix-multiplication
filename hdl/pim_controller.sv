@@ -1,9 +1,12 @@
-module pim_controller #(
-  MAX_SIZE=8
+module pim_controller 
+#(
+  parameter WIDTH = 32,
+  parameter MAX_SIZE = 16
 )
-{ 
+(
   input logic clk,
   input logic rst,
+
   input logic [WIDTH-1:0] matrix_A[MAX_SIZE**2 -1],
   input logic [WIDTH-1:0] matrix_B[MAX_SIZE**2 -1],
   input logic [2:0] matrix_size,                       //1-8 need 3 bits
@@ -11,18 +14,40 @@ module pim_controller #(
 
   output logic [WIDTH-1:0] result[MAX_SIZE**2 -1],
   output logic result_ready // to top
+);
 
-};
+  localparam CHUNK_SIZE = MAX_SIZE/2;
 
-logic ready;
-logic [WIDTH-1:0][(matrix_size/4)**2-1:0] chunk_a[3:0];
-logic [WIDTH-1:0][(matrix_size/4)**2-1:0] chunk_b[3:0];
-logic [WIDTH-1:0][(matrix_size/4)**2-1:0] result_from_pim_unit[3:0];
-logic [3:0] result_done;
+  logic ready;
+  logic [WIDTH-1:0] chunk_a[3:0][CHUNK_SIZE**2-1:0];
+  logic [WIDTH-1:0] chunk_b[3:0][CHUNK_SIZE**2-1:0];
+  logic [WIDTH-1:0] pim_results[3:0][CHUNK_SIZE**2-1:0];
+  logic [3:0] pim_unit_done;
+  logic all_pims_done;
 
 
 /*****Input Partition Logic******/
+  always_comb begin
+    // Clear chunks
+    for (int i = 0; i < 4; i++) begin
+      chunk_a[i] = 0;
+      chunk_b[i] = 0;
+    end
 
+    // Partition matrices into 4x4 chunks
+    for (int i = 0; i < matrix_size; i++) begin
+      for (int j = 0; j < matrix_size; j++) begin
+        int chunk_id = (i/CHUNK_SIZE)*2 + (j/CHUNK_SIZE);
+        int chunk_i = i % CHUNK_SIZE;
+        int chunk_j = j % CHUNK_SIZE;
+        
+        if (chunk_id < 4) begin
+            chunk_a[chunk_id][chunk_i*CHUNK_SIZE + chunk_j] = matrix_A[i*matrix_size + j];
+            chunk_b[chunk_id][chunk_i*CHUNK_SIZE + chunk_j] = matrix_B[i*matrix_size + j];
+        end
+      end
+    end
+  end
 /********************************/
 
   pim_unit pim_unit_1 #(.ID(0))
@@ -32,8 +57,8 @@ logic [3:0] result_done;
     .valid(1'b1),
     .matrixA(chunk_a[0]), 
     .matrixB(chunk_b[0]),
-    .result(result_from_pim_unit[0]),
-    .done(result_done[0])
+    .result(pim_results[0]),
+    .done(pim_unit_done[0])
   );
 
   pim_unit pim_unit_2 #(.ID(1))
@@ -43,8 +68,8 @@ logic [3:0] result_done;
     .valid(1'b1),
     .matrixA(chunk_a[1]), 
     .matrixB(chunk_b[1]),
-    .result(result_from_pim_unit[1]),
-    .done(result_done[1])
+    .result(pim_results[1]),
+    .done(pim_unit_done[1])
   );
 
   pim_unit pim_unit_3 #(.ID(2))
@@ -54,8 +79,8 @@ logic [3:0] result_done;
     .valid(1'b1),
     .matrixA(chunk_a[2]), 
     .matrixB(chunk_b[2]),
-    .result(result_from_pim_unit[2]),
-    .done(result_done[2])
+    .result(pim_results[2]),
+    .done(pim_unit_done[2])
   );
 
   pim_unit pim_unit_4 #(.ID(3))
@@ -65,8 +90,8 @@ logic [3:0] result_done;
     .valid(1'b1),
     .matrixA(chunk_a[3]), 
     .matrixB(chunk_b[3]),
-    .result(result_from_pim_unit[3]),
-    .done(result_done[3])
+    .result(pim_results[3]),
+    .done(pim_unit_done[3])
   );
 
 
@@ -76,18 +101,34 @@ logic [3:0] result_done;
 //       .valid(1'b1),
 //       .matrixA(chunk_a[i]), 
 //       .matrixB(chunk_b[i]),
-//       .result(result_from_pim_unit[i])
+//       .result(pim_results[i])
 //     );
 // end 
 
 // RESULT AGGREGATOR
+assign all_pims_done = &pim_unit_done;
+
 always_ff @(posedge clk) begin
   if (rst) begin
-    // rest logic goes here
-  end else begin
-    if (&result_done) begin
-
-    end
+    result <= 0;
+    result_ready <= 1'b0;
+  end else if (all_pims_done) begin
+      // Reconstruct full matrix from chunks
+      for (int i = 0; i < matrix_size; i++) begin
+        for (int j = 0; j < matrix_size; j++) begin
+          int chunk_id = (i/CHUNK_SIZE)*2 + (j/CHUNK_SIZE);
+          int chunk_i = i % CHUNK_SIZE;
+          int chunk_j = j % CHUNK_SIZE;
+          
+          if (chunk_id < 4) begin
+            result[i*matrix_size + j] <= pim_results[chunk_id][chunk_i*CHUNK_SIZE + chunk_j];
+          end
+        end
+      end
+      result_ready <= 1'b1;
+  end
+  else begin
+    result_ready <= 1'b0;
   end
 end
 

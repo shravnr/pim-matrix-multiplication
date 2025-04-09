@@ -1,4 +1,3 @@
-import types::*;
 module pim_unit
 #(
     parameter ID,
