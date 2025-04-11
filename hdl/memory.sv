@@ -1,8 +1,10 @@
 module memory
 #(
-    parameter LEN = 32,               // Data length per element
     parameter MEM_ELEMENTS = 1024,      // Total memory entries
-    parameter MAX_MATRIX_SIZE = 16      // Supports up to 16x16 matrices
+    parameter MAX_MATRIX_SIZE = 16,      // Supports up to 16x16 matrices
+    parameter WIDTH = 32,
+    parameter LEN = 10,
+    parameter matrix_size = 8 
 )
 (
     input         clk,
@@ -10,7 +12,9 @@ module memory
     input logic [LEN-1:0] src1_addr,
     input logic [LEN-1:0] src2_addr,
     input logic [LEN-1:0] dst_addr,
-    input logic [2:0]     matrix_size
+    // input logic [2:0]     matrix_size,
+
+    input logic start
 );
 
     // File descriptor and registers to hold file-read values
@@ -46,9 +50,108 @@ module memory
     // This helps you verify that the testbench is correctly driving these signals.
     always_ff @(posedge clk) begin
         if (!rst) begin
-            $display("Driven Inputs: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h, matrix_size=%0d",
-                     src1_addr, src2_addr, dst_addr, matrix_size);
+            $display("Driven Inputs: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h, matrix_size=%0d, start=%0d",
+                     src1_addr, src2_addr, dst_addr, matrix_size, start);
         end
     end
+
+    // Memory
+    logic [WIDTH-1:0] mem[MEM_ELEMENTS-1:0];
+
+    //Inputs to PIM-C
+    logic [WIDTH-1:0] matrix_A [matrix_size**2-1:0];
+    logic [WIDTH-1:0] matrix_B [matrix_size**2-1:0];
+    logic [WIDTH-1:0] result [matrix_size**2-1:0];
+    logic pim_unit_start;
+
+    //Output from PIM-C
+    logic result_ready;
+
+    //Memory FSM States
+    typedef enum logic [1:0] {
+        IDLE,
+        READ_MATRICES,
+        COMPUTE,
+        WRITE_RESULT
+    } state_t;
+
+    state_t current_state, next_state;
+    //Drive State Machine
+    always_ff @(posedge clk) begin
+        if(rst) current_state <= IDLE;
+        else    current_state <= next_state;
+    end
+
+    //State Transition Logic
+    always_comb begin
+        next_state = current_state;
+        case(current_state) 
+            IDLE:               if(start) next_state = READ_MATRICES;
+            READ_MATRICES:      next_state = COMPUTE;
+            COMPUTE:            if(result_ready) next_state = WRITE_RESULT;
+            WRITE_RESULT:       next_state= IDLE;
+        endcase
+    end
+
+    pim_controller #(
+        .WIDTH(WIDTH),
+        .MAX_MATRIX_SIZE(MAX_MATRIX_SIZE)
+    ) pim_ctl (
+        .clk(clk), //clock synchronization ensured. so I don't think modules need to be called within an always_ff (i don't think that's valid either)
+        .rst(rst),
+        .start(pim_unit_start), 
+        .matrix_A(matrix_A), 
+        .matrix_B(matrix_B), 
+        // .matrix_size(matrix_size),
+        //.no_of_pims(no_of_pims),
+        .result(result),
+        .result_ready(result_ready)//output from PIM-C-- but does it need to communicate with memory? might need another wrapper here 
+    );
+
+    //State Logic
+    always_ff @(posedge clk) begin
+        case(current_state)
+
+            IDLE: begin
+                // busy<=0;
+                // done<=0;
+
+                if(rst) begin
+                    for (int i = 0; i < MEM_ELEMENTS- 1; i++) begin
+                        mem[i] <= i;
+                    end
+                end
+            end
+
+            READ_MATRICES: begin
+
+                for (int i = 0; i < matrix_size**2 - 1; i++) begin
+                    matrix_A[i] <= mem[src1_addr + i];
+                    matrix_B[i] <= mem[src2_addr + i];
+                end
+
+                // busy<=1;
+                pim_unit_start<=1;
+
+            end
+
+            COMPUTE: begin
+                pim_unit_start<=0;
+            end
+
+            WRITE_RESULT: begin
+
+                for (int i = 0; i < matrix_size**2 - 1; i++) begin
+                    mem[dst_addr + i] <= result[i];
+                end
+
+                // done<=1;
+                // busy<=0;
+            end
+
+        endcase
+
+    end
+
 
 endmodule

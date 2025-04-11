@@ -21,7 +21,8 @@ module top_tb;
     logic [31:0] src1_addr;
     logic [31:0] src2_addr;
     logic [31:0] dst_addr;
-    logic [2:0]  matrix_size;  // 3-bit signals: valid values are 0 to 7
+    // logic [2:0]  matrix_size;  // 3-bit signals: valid values are 0 to 7
+    logic   start;  // 3-bit signals: valid values are 0 to 7
 
     // Drive the stimulus for the memory DUT (set to your desired test values)
     initial begin
@@ -29,7 +30,8 @@ module top_tb;
         src1_addr   = 32'h1000;
         src2_addr   = 32'h2000;
         dst_addr    = 32'h3000;
-        matrix_size = 3'd7;  // Changed from 3'd8 to 3'd7, which fits in 3 bits
+        // matrix_size = 3'd7;  
+        start = 1'b1;
     end
 
     // Reset generation and FSDB dumping
