@@ -1,11 +1,5 @@
+import types::*;
 module memory
-#(
-    parameter MEM_ELEMENTS = 1024,      // Total memory entries
-    parameter MAX_MATRIX_SIZE = 16,      // Supports up to 16x16 matrices
-    parameter WIDTH = 32,
-    parameter LEN = 10,
-    parameter matrix_size = 8 
-)
 (
     input         clk,
     input         rst,
@@ -20,7 +14,7 @@ module memory
     // File descriptor and registers to hold file-read values
     int fd;
     logic [LEN-1:0] f_src1_addr, f_src2_addr, f_dst_addr;
-    logic [2:0]     f_matrix_size;
+    // logic [2:0]     f_matrix_size;
 
     // Open the input test vector file at simulation start
     initial begin
@@ -36,9 +30,9 @@ module memory
     // You can extend this to read multiple lines in a loop if needed.
     always_ff @(posedge clk) begin
         if (!rst) begin
-            if ($fscanf(fd, "%h %h %h %d\n", f_src1_addr, f_src2_addr, f_dst_addr, f_matrix_size) == 4) begin
-                $display("File Input: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h, matrix_size=%0d", 
-                         f_src1_addr, f_src2_addr, f_dst_addr, f_matrix_size);
+            if ($fscanf(fd, "%h %h %h %d\n", f_src1_addr, f_src2_addr, f_dst_addr) == 3) begin
+                $display("File Input: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h", 
+                         f_src1_addr, f_src2_addr, f_dst_addr);
             end else begin
                 $display("File read error or EOF reached");
                 $finish;
@@ -50,8 +44,8 @@ module memory
     // This helps you verify that the testbench is correctly driving these signals.
     always_ff @(posedge clk) begin
         if (!rst) begin
-            $display("Driven Inputs: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h, matrix_size=%0d, start=%0d",
-                     src1_addr, src2_addr, dst_addr, matrix_size, start);
+            $display("Driven Inputs: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h, start=%0d",
+                     src1_addr, src2_addr, dst_addr, start);
         end
     end
 
@@ -59,9 +53,9 @@ module memory
     logic [WIDTH-1:0] mem[MEM_ELEMENTS-1:0];
 
     //Inputs to PIM-C
-    logic [WIDTH-1:0] matrix_A [matrix_size**2-1:0];
-    logic [WIDTH-1:0] matrix_B [matrix_size**2-1:0];
-    logic [WIDTH-1:0] result [matrix_size**2-1:0];
+    logic [WIDTH-1:0] matrix_A [MATRIX_SIZE**2-1:0];
+    logic [WIDTH-1:0] matrix_B [MATRIX_SIZE**2-1:0];
+    logic [WIDTH-1:0] result [MATRIX_SIZE**2-1:0];
     logic pim_unit_start;
 
     //Output from PIM-C
@@ -93,10 +87,7 @@ module memory
         endcase
     end
 
-    pim_controller #(
-        .WIDTH(WIDTH),
-        .MAX_MATRIX_SIZE(MAX_MATRIX_SIZE)
-    ) pim_ctl (
+    pim_controller pim_ctl (
         .clk(clk), //clock synchronization ensured. so I don't think modules need to be called within an always_ff (i don't think that's valid either)
         .rst(rst),
         .start(pim_unit_start), 
@@ -125,23 +116,23 @@ module memory
 
             READ_MATRICES: begin
 
-                for (int i = 0; i < matrix_size**2 - 1; i++) begin
+                for (int i = 0; i < MATRIX_SIZE**2 - 1; i++) begin
                     matrix_A[i] <= mem[src1_addr + i];
                     matrix_B[i] <= mem[src2_addr + i];
                 end
 
                 // busy<=1;
-                pim_unit_start<=1;
+                pim_unit_start <= 1'b1;
 
             end
 
             COMPUTE: begin
-                pim_unit_start<=0;
+                pim_unit_start <= 1'b0;
             end
 
             WRITE_RESULT: begin
 
-                for (int i = 0; i < matrix_size**2 - 1; i++) begin
+                for (int i = 0; i < MATRIX_SIZE**2 - 1; i++) begin
                     mem[dst_addr + i] <= result[i];
                 end
 
