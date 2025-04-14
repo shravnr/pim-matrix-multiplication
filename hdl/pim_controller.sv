@@ -18,8 +18,8 @@ module pim_controller
 );
 
   logic ready;
-  logic [WIDTH-1:0] chunk_a[1:0][CHUNK_SIZE-1:0][MATRIX_SIZE-1:0]; // [1:0] = [NUM_OF_PIM_UNITS]/2 -1 : 0]
-  logic [WIDTH-1:0] chunk_b[1:0][MATRIX_SIZE-1:0][CHUNK_SIZE-1:0];
+  logic [WIDTH-1:0] chunk_a[NUM_OF_PIM_UNITS/2-1:0][CHUNK_SIZE-1:0][MATRIX_SIZE-1:0]; // [1:0] = [NUM_OF_PIM_UNITS]/2 -1 : 0]
+  logic [WIDTH-1:0] chunk_b[NUM_OF_PIM_UNITS/2-1:0][MATRIX_SIZE-1:0][CHUNK_SIZE-1:0];
   logic [WIDTH-1:0] pim_results[3:0][CHUNK_SIZE**2-1:0];
   logic [3:0] pim_unit_done;
   logic all_pims_done;
@@ -29,7 +29,7 @@ module pim_controller
 /*****Input Partition Logic******/
   always_comb begin
     // Initialize  chunks
-    for (int a = 0; a < 4; a++) begin
+    for (int a = 0; a < NUM_OF_PIM_UNITS/2; a++) begin
       for (int b = 0; b < CHUNK_SIZE; b++) begin
         for (int c = 0; c < MATRIX_SIZE; c++) begin
           chunk_a[a][b][c] = '0;
@@ -48,7 +48,7 @@ module pim_controller
     end
 
     // Partition matrices into 4 chunks
-    for (int idx = 0; idx < 2; idx++) begin
+    for (int idx = 0; idx < NUM_OF_PIM_UNITS/2; idx++) begin
       for (int i = 0; i < CHUNK_SIZE; i++) begin
         for (int j = 0; j < MATRIX_SIZE; j++) begin
           chunk_a[idx][i][j] = matrixA_2d[i+CHUNK_SIZE*idx][j];
@@ -56,7 +56,7 @@ module pim_controller
       end
     end
 
-    for (int idx = 0; idx < 2; idx++) begin
+    for (int idx = 0; idx < NUM_OF_PIM_UNITS/2; idx++) begin
       for (int i = 0; i < MATRIX_SIZE; i++) begin
         for (int j = 0; j < CHUNK_SIZE; j++) begin
           chunk_b[idx][i][j] = matrixB_2d[i][j+CHUNK_SIZE*idx];
@@ -68,6 +68,26 @@ module pim_controller
   end
 /********************************/
 
+  generate
+    genvar i;
+    for (i = 0; i < NUM_OF_PIM_UNITS; i++) begin : PIM_UNIT_GEN
+        // Calculate row and column index (assuming 2x2 grid)
+        localparam int row = i / 2;
+        localparam int col = i % 2;
+
+        pim_unit #(.ID(i)) pim_unit_inst (
+            .clk(clk),
+            .rst(rst),
+            .valid(start),
+            .matrixA(chunk_a[row]),   // chunk_a[0] or chunk_a[1]
+            .matrixB(chunk_b[col]),   // chunk_b[0] or chunk_b[1]
+            .result(pim_results[i]),
+            .result_valid(pim_unit_done[i])
+        );
+    end
+  endgenerate
+
+  /*
   pim_unit #(.ID(0)) pim_unit_1 
   (
     .clk(clk),
@@ -110,7 +130,7 @@ module pim_controller
     .matrixB(chunk_b[1]),
     .result(pim_results[3]),
     .result_valid(pim_unit_done[3])
-  );
+  );*/
 
 
 

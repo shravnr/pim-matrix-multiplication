@@ -1,5 +1,7 @@
 package types;
 
+    parameter int NUM_OF_PIM_UNITS = 4; // square of 4 number always, even power of 4
+
     parameter int MATRIX_SIZE = 4;
     parameter int CHUNK_SIZE = MATRIX_SIZE/2;
     
