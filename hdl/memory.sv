@@ -35,7 +35,7 @@ module memory
                          f_src1_addr, f_src2_addr, f_dst_addr);
             end else begin
                 $display("File read error or EOF reached");
-                $finish;
+                // $finish;
             end
         end
     end
@@ -70,6 +70,9 @@ module memory
     } state_t;
 
     state_t current_state, next_state;
+    
+
+
     //Drive State Machine
     always_ff @(posedge clk) begin
         if(rst) current_state <= IDLE;
@@ -101,46 +104,47 @@ module memory
 
     //State Logic
     always_ff @(posedge clk) begin
-        case(current_state)
+        if(rst) begin
+            for (int i = 0; i < MEM_ELEMENTS; i++) begin
+                mem[i] <= i;
+            end
+        end else begin
+            case(current_state)
 
-            IDLE: begin
-                // busy<=0;
-                // done<=0;
+                IDLE: begin
+                    // busy<=0;
+                    // done<=0;
+                end
 
-                if(rst) begin
-                    for (int i = 0; i < MEM_ELEMENTS- 1; i++) begin
-                        mem[i] <= i;
+                READ_MATRICES: begin
+
+                    for (int i = 0; i < MATRIX_SIZE**2; i++) begin
+                        matrix_A[i] <= mem[src1_addr + i];
+                        matrix_B[i] <= mem[src2_addr + i];
                     end
-                end
-            end
 
-            READ_MATRICES: begin
+                    // busy<=1;
+                    pim_unit_start <= 1'b1;
 
-                for (int i = 0; i < MATRIX_SIZE**2 - 1; i++) begin
-                    matrix_A[i] <= mem[src1_addr + i];
-                    matrix_B[i] <= mem[src2_addr + i];
                 end
 
-                // busy<=1;
-                pim_unit_start <= 1'b1;
-
-            end
-
-            COMPUTE: begin
-                pim_unit_start <= 1'b0;
-            end
-
-            WRITE_RESULT: begin
-
-                for (int i = 0; i < MATRIX_SIZE**2 - 1; i++) begin
-                    mem[dst_addr + i] <= result[i];
+                COMPUTE: begin
+                    pim_unit_start <= 1'b0;
                 end
 
-                // done<=1;
-                // busy<=0;
-            end
+                WRITE_RESULT: begin
 
-        endcase
+                    for (int i = 0; i < MATRIX_SIZE**2; i++) begin
+                        mem[dst_addr + i] <= result[i];
+                    end
+
+                    // done<=1;
+                    // busy<=0;
+                end
+                
+
+            endcase
+        end
 
     end
 

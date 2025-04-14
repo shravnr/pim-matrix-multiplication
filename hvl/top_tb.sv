@@ -1,3 +1,4 @@
+import types::*;
 module top_tb;
     timeunit 1ps;
     timeprecision 1ps;
@@ -18,20 +19,29 @@ module top_tb;
     longint timeout;
 
     // Declare signals to drive the memory module inputs:
-    logic [31:0] src1_addr;
-    logic [31:0] src2_addr;
-    logic [31:0] dst_addr;
+    logic [LEN-1:0] src1_addr;
+    logic [LEN-1:0] src2_addr;
+    logic [LEN-1:0] dst_addr;
     // logic [2:0]  matrix_size;  // 3-bit signals: valid values are 0 to 7
     logic   start;  // 3-bit signals: valid values are 0 to 7
 
     // Drive the stimulus for the memory DUT (set to your desired test values)
     initial begin
         // Set the memory addresses and matrix size.
-        src1_addr   = 32'h1000;
-        src2_addr   = 32'h2000;
-        dst_addr    = 32'h3000;
+        src1_addr   = 'd100;
+        src2_addr   = 'd200;
+        dst_addr    = 'd300;
         // matrix_size = 3'd7;  
         start = 1'b1;
+        #13000
+        start = 1'b0;
+        #1000
+        src1_addr   = 'd001;
+        src2_addr   = 'd020;
+        dst_addr    = 'd040;
+        start = 1'b1;
+        #12000
+        start = 1'b0;
     end
 
     // Reset generation and FSDB dumping

@@ -18,35 +18,53 @@ module pim_controller
 );
 
   logic ready;
-  logic [WIDTH-1:0] chunk_a[3:0][CHUNK_SIZE**2-1:0];
-  logic [WIDTH-1:0] chunk_b[3:0][CHUNK_SIZE**2-1:0];
+  logic [WIDTH-1:0] chunk_a[1:0][CHUNK_SIZE-1:0][MATRIX_SIZE-1:0]; // [1:0] = [NUM_OF_PIM_UNITS]/2 -1 : 0]
+  logic [WIDTH-1:0] chunk_b[1:0][MATRIX_SIZE-1:0][CHUNK_SIZE-1:0];
   logic [WIDTH-1:0] pim_results[3:0][CHUNK_SIZE**2-1:0];
   logic [3:0] pim_unit_done;
   logic all_pims_done;
 
-
+  logic [WIDTH-1:0] matrixA_2d [MATRIX_SIZE-1:0][MATRIX_SIZE-1:0];
+  logic [WIDTH-1:0] matrixB_2d [MATRIX_SIZE-1:0][MATRIX_SIZE-1:0];
 /*****Input Partition Logic******/
   always_comb begin
     // Initialize  chunks
     for (int a = 0; a < 4; a++) begin
-      for (int b = 0; b < CHUNK_SIZE**2; b++) begin
-        chunk_a[a][b] = '0;
-        chunk_b[a][b] = '0;
-      end
-    end
-
-    // Partition matrices into 1D 4x4 chunks
-    for (int i = 0; i < MATRIX_SIZE; i++) begin
-      for (int j = 0; j < MATRIX_SIZE; j++) begin
-        automatic int chunk_id = (i/CHUNK_SIZE)*2 + (j/CHUNK_SIZE);
-        automatic int chunk_i = i % CHUNK_SIZE;
-        automatic int chunk_j = j % CHUNK_SIZE;
-        if (chunk_id < 4) begin
-            chunk_a[chunk_id][chunk_i*CHUNK_SIZE + chunk_j] = matrix_A[i*MATRIX_SIZE + j];
-            chunk_b[chunk_id][chunk_i*CHUNK_SIZE + chunk_j] = matrix_B[i*MATRIX_SIZE + j];
+      for (int b = 0; b < CHUNK_SIZE; b++) begin
+        for (int c = 0; c < MATRIX_SIZE; c++) begin
+          chunk_a[a][b][c] = '0;
+          chunk_b[a][c][b] = '0;
         end
       end
     end
+
+    // Matrix A and Matrix B 1D -> 2D conversion
+    for (int i = 0; i < MATRIX_SIZE; i++) begin
+        for (int j = 0; j < MATRIX_SIZE; j++) begin
+            automatic int idx = i * MATRIX_SIZE + j;
+            matrixA_2d[i][j] = matrix_A[idx];
+            matrixB_2d[i][j] = matrix_B[idx];
+        end
+    end
+
+    // Partition matrices into 4 chunks
+    for (int idx = 0; idx < 2; idx++) begin
+      for (int i = 0; i < CHUNK_SIZE; i++) begin
+        for (int j = 0; j < MATRIX_SIZE; j++) begin
+          chunk_a[idx][i][j] = matrixA_2d[i+CHUNK_SIZE*idx][j];
+        end
+      end
+    end
+
+    for (int idx = 0; idx < 2; idx++) begin
+      for (int i = 0; i < MATRIX_SIZE; i++) begin
+        for (int j = 0; j < CHUNK_SIZE; j++) begin
+          chunk_b[idx][i][j] = matrixB_2d[i][j+CHUNK_SIZE*idx];
+        end
+      end
+    end
+
+
   end
 /********************************/
 
@@ -66,7 +84,7 @@ module pim_controller
     .clk(clk),
     .rst(rst),
     .valid(start),
-    .matrixA(chunk_a[1]), 
+    .matrixA(chunk_a[0]), 
     .matrixB(chunk_b[1]),
     .result(pim_results[1]),
     .result_valid(pim_unit_done[1])
@@ -77,8 +95,8 @@ module pim_controller
     .clk(clk),
     .rst(rst),
     .valid(start),
-    .matrixA(chunk_a[2]), 
-    .matrixB(chunk_b[2]),
+    .matrixA(chunk_a[1]), 
+    .matrixB(chunk_b[0]),
     .result(pim_results[2]),
     .result_valid(pim_unit_done[2])
   );
@@ -88,8 +106,8 @@ module pim_controller
     .clk(clk),
     .rst(rst),
     .valid(start),
-    .matrixA(chunk_a[3]), 
-    .matrixB(chunk_b[3]),
+    .matrixA(chunk_a[1]), 
+    .matrixB(chunk_b[1]),
     .result(pim_results[3]),
     .result_valid(pim_unit_done[3])
   );
