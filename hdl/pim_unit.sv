@@ -23,7 +23,7 @@ module pim_unit
      always_comb begin
         for (int i = 0; i < CHUNK_SIZE; i++) begin
             for (int j = 0; j < CHUNK_SIZE; j++) begin
-                result_2d[i][j] = '0;
+                result_2d[i][j] = 0;
                 for (int k = 0; k < MATRIX_SIZE; k++) begin
                     result_2d[i][j] += matrixA[i][k] * matrixB[k][j];
                 end

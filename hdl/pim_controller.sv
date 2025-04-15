@@ -16,12 +16,13 @@ module pim_controller
 
   //NEED VALID HERE
 );
+  localparam int CHUNK_INDEX_DIVIDE = $sqrt(NUM_OF_PIM_UNITS);
 
   logic ready;
-  logic [WIDTH-1:0] chunk_a[NUM_OF_PIM_UNITS/2-1:0][CHUNK_SIZE-1:0][MATRIX_SIZE-1:0]; // [1:0] = [NUM_OF_PIM_UNITS]/2 -1 : 0]
-  logic [WIDTH-1:0] chunk_b[NUM_OF_PIM_UNITS/2-1:0][MATRIX_SIZE-1:0][CHUNK_SIZE-1:0];
-  logic [WIDTH-1:0] pim_results[3:0][CHUNK_SIZE**2-1:0];
-  logic [3:0] pim_unit_done;
+  logic [WIDTH-1:0] chunk_a[CHUNK_INDEX_DIVIDE-1:0][CHUNK_SIZE-1:0][MATRIX_SIZE-1:0]; // [1:0] = [NUM_OF_PIM_UNITS]/2 -1 : 0]
+  logic [WIDTH-1:0] chunk_b[CHUNK_INDEX_DIVIDE-1:0][MATRIX_SIZE-1:0][CHUNK_SIZE-1:0];
+  logic [WIDTH-1:0] pim_results[NUM_OF_PIM_UNITS-1:0][CHUNK_SIZE**2-1:0];
+  logic [NUM_OF_PIM_UNITS-1:0] pim_unit_done;
   logic all_pims_done;
 
   logic [WIDTH-1:0] matrixA_2d [MATRIX_SIZE-1:0][MATRIX_SIZE-1:0];
@@ -29,11 +30,11 @@ module pim_controller
 /*****Input Partition Logic******/
   always_comb begin
     // Initialize  chunks
-    for (int a = 0; a < NUM_OF_PIM_UNITS/2; a++) begin
+    for (int a = 0; a < CHUNK_INDEX_DIVIDE; a++) begin
       for (int b = 0; b < CHUNK_SIZE; b++) begin
         for (int c = 0; c < MATRIX_SIZE; c++) begin
-          chunk_a[a][b][c] = '0;
-          chunk_b[a][c][b] = '0;
+          chunk_a[a][b][c] = 0;
+          chunk_b[a][c][b] = 0;
         end
       end
     end
@@ -48,7 +49,7 @@ module pim_controller
     end
 
     // Partition matrices into 4 chunks
-    for (int idx = 0; idx < NUM_OF_PIM_UNITS/2; idx++) begin
+    for (int idx = 0; idx < CHUNK_INDEX_DIVIDE; idx++) begin
       for (int i = 0; i < CHUNK_SIZE; i++) begin
         for (int j = 0; j < MATRIX_SIZE; j++) begin
           chunk_a[idx][i][j] = matrixA_2d[i+CHUNK_SIZE*idx][j];
@@ -72,8 +73,8 @@ module pim_controller
     genvar i;
     for (i = 0; i < NUM_OF_PIM_UNITS; i++) begin : PIM_UNIT_GEN
         // Calculate row and column index (assuming 2x2 grid)
-        localparam int row = i / 2;
-        localparam int col = i % 2;
+        localparam int row = i / CHUNK_INDEX_DIVIDE;
+        localparam int col = i % CHUNK_INDEX_DIVIDE;
 
         pim_unit #(.ID(i)) pim_unit_inst (
             .clk(clk),
@@ -87,52 +88,6 @@ module pim_controller
     end
   endgenerate
 
-  /*
-  pim_unit #(.ID(0)) pim_unit_1 
-  (
-    .clk(clk),
-    .rst(rst),
-    .valid(start),
-    .matrixA(chunk_a[0]), 
-    .matrixB(chunk_b[0]),
-    .result(pim_results[0]),
-    .result_valid(pim_unit_done[0])
-  );
-
-  pim_unit #(.ID(1)) pim_unit_2
-  (
-    .clk(clk),
-    .rst(rst),
-    .valid(start),
-    .matrixA(chunk_a[0]), 
-    .matrixB(chunk_b[1]),
-    .result(pim_results[1]),
-    .result_valid(pim_unit_done[1])
-  );
-
-  pim_unit #(.ID(2)) pim_unit_3
-  (
-    .clk(clk),
-    .rst(rst),
-    .valid(start),
-    .matrixA(chunk_a[1]), 
-    .matrixB(chunk_b[0]),
-    .result(pim_results[2]),
-    .result_valid(pim_unit_done[2])
-  );
-
-  pim_unit #(.ID(3)) pim_unit_4
-  (
-    .clk(clk),
-    .rst(rst),
-    .valid(start),
-    .matrixA(chunk_a[1]), 
-    .matrixB(chunk_b[1]),
-    .result(pim_results[3]),
-    .result_valid(pim_unit_done[3])
-  );*/
-
-
 
 
 // RESULT AGGREGATOR
@@ -140,21 +95,19 @@ assign all_pims_done = &pim_unit_done;
 
 always_ff @(posedge clk) begin
   if (rst) begin
-    for (int i = 0; i < MATRIX_SIZE; i++) begin
-      for (int j = 0; j < MATRIX_SIZE; j++) begin
-        result[i][j] <= '0;
-      end
+    for (int i = 0; i < MATRIX_SIZE**2; i++) begin
+        result[i] <= 0;
     end
     result_ready <= 1'b0;
   end else if (all_pims_done) begin
       // Reconstruct full matrix from chunks
       for (int i = 0; i < MATRIX_SIZE; i++) begin
         for (int j = 0; j < MATRIX_SIZE; j++) begin
-          automatic int chunk_id = (i/CHUNK_SIZE)*2 + (j/CHUNK_SIZE);
+          automatic int chunk_id = (i/CHUNK_SIZE)*CHUNK_INDEX_DIVIDE + (j/CHUNK_SIZE);
           automatic int chunk_i = i % CHUNK_SIZE;
           automatic int chunk_j = j % CHUNK_SIZE;
           
-          if (chunk_id < 4) begin
+          if (chunk_id < NUM_OF_PIM_UNITS) begin
             result[i*MATRIX_SIZE + j] <= pim_results[chunk_id][chunk_i*CHUNK_SIZE + chunk_j];
           end
         end
