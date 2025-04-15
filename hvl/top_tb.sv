@@ -3,48 +3,62 @@ module top_tb;
     timeunit 1ps;
     timeprecision 1ps;
 
-    // Clock period: read plusarg and compute half period.
     int clock_half_period_ps;
     initial begin
         $value$plusargs("CLOCK_PERIOD_PS_ECE511=%d", clock_half_period_ps);
         clock_half_period_ps = clock_half_period_ps / 2;
     end
 
-    // Clock generation
     bit clk;
     always #(clock_half_period_ps) clk = ~clk;
 
-    // Reset and timeout signals
     bit rst;
     longint timeout;
 
-    // Declare signals to drive the memory module inputs:
     logic [LEN-1:0] src1_addr;
     logic [LEN-1:0] src2_addr;
     logic [LEN-1:0] dst_addr;
-    // logic [2:0]  matrix_size;  // 3-bit signals: valid values are 0 to 7
-    logic   start;  // 3-bit signals: valid values are 0 to 7
+    logic start;
 
-    // Drive the stimulus for the memory DUT (set to your desired test values)
+    int fd, status;
+    logic [LEN-1:0] t_src1, t_src2, t_dst;
+    logic t_start; 
+    int t_delay;
+
     initial begin
-        // Set the memory addresses and matrix size.
-        src1_addr   = 'd100;
-        src2_addr   = 'd200;
-        dst_addr    = 'd300;
-        // matrix_size = 3'd7;  
-        start = 1'b1;
-        #13000
-        start = 1'b0;
-        #1000
-        src1_addr   = 'd001;
-        src2_addr   = 'd020;
-        dst_addr    = 'd040;
-        start = 1'b1;
-        #12000
-        start = 1'b0;
+        // Open the test vector file.
+        fd = $fopen("memory_inputs.txt", "r");
+        if (fd == 0) begin
+            $error("Failed to open memory_inputs.txt");
+            $finish;
+        end
+
+        @(negedge rst);
+
+        // Loop through the file until EOF.
+        while (!$feof(fd)) begin
+            status = $fscanf(fd, "%d %d %d %d %d\n", t_src1, t_src2, t_dst, t_start, t_delay);
+            if (status != 5) begin
+                $display("Incomplete data read (status = %0d), stopping stimulus.", status);
+                break;
+            end
+
+            $display("TB File Input: src1_addr=%0d, src2_addr=%0d, dst_addr=%0d, start=%0d, delay=%0d",
+                     t_src1, t_src2, t_dst, t_start, t_delay);
+
+            src1_addr = t_src1;
+            src2_addr = t_src2;
+            dst_addr  = t_dst;
+            start     = (t_start != 0) ? 1'b1 : 1'b0;
+
+            #t_delay;
+            start = 1'b0;
+            #1000;
+        end
+
+        $fclose(fd);
     end
 
-    // Reset generation and FSDB dumping
     initial begin
         $fsdbDumpfile("dump.fsdb");
         $value$plusargs("TIMEOUT_ECE511=%d", timeout);
@@ -60,10 +74,15 @@ module top_tb;
         rst = 1'b0;
     end
 
-    // Instantiate the DUT. Using ".*" connects signals with matching names.
-    memory dut(.*);
+    memory dut (
+        .clk(clk),
+        .rst(rst),
+        .src1_addr(src1_addr),
+        .src2_addr(src2_addr),
+        .dst_addr(dst_addr),
+        .start(start)
+    );
 
-    // Timeout monitoring: check each clock edge for timeout condition.
     always @(posedge clk) begin
         if (timeout == 0) begin
             $display("Monitor: Timed out");

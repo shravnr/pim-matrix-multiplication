@@ -1,5 +1,5 @@
-import types::*;
 module memory
+import types::*;
 (
     input         clk,
     input         rst,
@@ -10,44 +10,6 @@ module memory
 
     input logic start
 );
-
-    // File descriptor and registers to hold file-read values
-    int fd;
-    logic [LEN-1:0] f_src1_addr, f_src2_addr, f_dst_addr;
-    // logic [2:0]     f_matrix_size;
-
-    // Open the input test vector file at simulation start
-    initial begin
-        fd = $fopen("memory_inputs.txt", "r");
-        if (fd == 0) begin
-            $error("Failed to open memory_inputs.txt");
-            $finish;
-        end
-    end
-
-    // Read a line from the test file (once, after reset is deasserted)
-    // and display the values.
-    // You can extend this to read multiple lines in a loop if needed.
-    always_ff @(posedge clk) begin
-        if (!rst) begin
-            if ($fscanf(fd, "%h %h %h %d\n", f_src1_addr, f_src2_addr, f_dst_addr) == 3) begin
-                $display("File Input: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h", 
-                         f_src1_addr, f_src2_addr, f_dst_addr);
-            end else begin
-                $display("File read error or EOF reached");
-                // $finish;
-            end
-        end
-    end
-
-    // Display the inputs received from the testbench.
-    // This helps you verify that the testbench is correctly driving these signals.
-    always_ff @(posedge clk) begin
-        if (!rst) begin
-            $display("Driven Inputs: src1_addr=0x%h, src2_addr=0x%h, dst_addr=0x%h, start=%0d",
-                     src1_addr, src2_addr, dst_addr, start);
-        end
-    end
 
     // Memory
     logic [WIDTH-1:0] mem[MEM_ELEMENTS-1:0];

@@ -1,20 +1,18 @@
-import types::*;
 module pim_controller 
+import types::*;
 (
   input logic clk,
   input logic rst,
 
   input logic [WIDTH-1:0] matrix_A[MATRIX_SIZE**2-1:0],
   input logic [WIDTH-1:0] matrix_B[MATRIX_SIZE**2-1:0],
-  // input logic [2:0] matrix_size,                       //1-8 need 3 bits
-  // input logic [2:0] no_of_pims,                      //total number is 8
+
 
   input logic start,
 
   output logic [WIDTH-1:0] result[MATRIX_SIZE**2-1:0],
   output logic result_ready // to top
 
-  //NEED VALID HERE
 );
   localparam int CHUNK_INDEX_DIVIDE = $sqrt(NUM_OF_PIM_UNITS);
 
@@ -67,7 +65,6 @@ module pim_controller
 
 
   end
-/********************************/
 
   generate
     genvar i;

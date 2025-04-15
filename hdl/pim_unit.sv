@@ -1,5 +1,5 @@
-import types::*;
 module pim_unit
+import types::*;
 #(
     parameter ID
 ) 
@@ -9,7 +9,7 @@ module pim_unit
 
     // From partition
     input logic valid,      // Matrix chunk inputs are valid :  NEEDS TO COME FROM TOP
-    input logic [WIDTH-1:0] matrixA [CHUNK_SIZE-1:0][MATRIX_SIZE-1:0],      // 2D arraiy
+    input logic [WIDTH-1:0] matrixA [CHUNK_SIZE-1:0][MATRIX_SIZE-1:0],      // 2D array
     input logic [WIDTH-1:0] matrixB [MATRIX_SIZE-1:0][CHUNK_SIZE-1:0],      
     
     // To result aggregator
