@@ -1,6 +1,6 @@
 # pim-matrix-multiplication
 
-Design and verification a Processing-In-Memory (PIM) architecture for accelerating matrix multiplication, by distributing computation across multiple PIM units and aggregating results efficiently, using SystemVerilog and UVM. 
+Design and verification a Processing-In-Memory (PIM) architecture for accelerating matrix multiplication, by distributing computation across multiple PIM units and aggregating results efficiently, using SystemVerilog. 
 The project addresses the von Neumann bottleneck by reducing data movement between CPU and memory, and is challenging because we are implementing different chunking strategies for parallelism, and choosing the number of PIM units to be used dynamically. 
 
 
