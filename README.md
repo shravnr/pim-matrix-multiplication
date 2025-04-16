@@ -23,7 +23,7 @@ Date of Completion- 20th April 2025
 
 Graph 3: Execution time vs No. of PIM units for a given matrix size 
 
-Tool flow- RTL implementation in SystemVerilog -> Simulation in VCS (PIM), Gem5 Simulation (normal CPU)  
+Tool flow- RTL implementation in SystemVerilog with Dynamic allocation (scaling) -> Simulation in VCS (PIM) -> Full RTL Implementation of CPU for comparison
 
 Date of Completion- 1st May 2025 
 
