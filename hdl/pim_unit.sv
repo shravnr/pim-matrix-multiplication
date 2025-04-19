@@ -9,8 +9,8 @@ import types::*;
 
     // From partition
     input logic valid,      // Matrix chunk inputs are valid :  NEEDS TO COME FROM TOP
-    input logic [WIDTH-1:0] matrixA [CHUNK_SIZE-1:0][MATRIX_SIZE-1:0],      // 2D array
-    input logic [WIDTH-1:0] matrixB [MATRIX_SIZE-1:0][CHUNK_SIZE-1:0],      
+    input logic [WIDTH-1:0] matrixA [CHUNK_SIZE-1:0][PIM_UNIT_CAPACITY-1:0],      // 2D array 2x4
+    input logic [WIDTH-1:0] matrixB [PIM_UNIT_CAPACITY-1:0][CHUNK_SIZE-1:0],      // 4x2
     
     // To result aggregator
     output logic [WIDTH-1:0] result [CHUNK_SIZE**2-1:0],      // 1D array
@@ -24,7 +24,7 @@ import types::*;
         for (int i = 0; i < CHUNK_SIZE; i++) begin
             for (int j = 0; j < CHUNK_SIZE; j++) begin
                 result_2d[i][j] = 0;
-                for (int k = 0; k < MATRIX_SIZE; k++) begin
+                for (int k = 0; k < PIM_UNIT_CAPACITY; k++) begin
                     result_2d[i][j] += matrixA[i][k] * matrixB[k][j];
                 end
             end
