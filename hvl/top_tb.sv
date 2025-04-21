@@ -1,8 +1,9 @@
-import types::*;
 module top_tb;
     timeunit 1ps;
     timeprecision 1ps;
 
+    import types::*;
+    
     int clock_half_period_ps;
     initial begin
         $value$plusargs("CLOCK_PERIOD_PS_ECE511=%d", clock_half_period_ps);

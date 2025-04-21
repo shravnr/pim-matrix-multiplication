@@ -120,7 +120,6 @@ import types::*;
   // Chunk control signals
   logic all_chunks_sent;
   logic [NUM_OF_PIM_UNITS-1:0] pim_unit_busy;
-  logic [NUM_OF_PIM_UNITS-1:0] pim_unit_done_chunk;
 
   typedef enum logic [1:0] {
       IDLE,
@@ -138,6 +137,7 @@ import types::*;
   } pim_unit_struct;
 
   pim_unit_struct [NUM_OF_PIM_UNITS-1:0] pim_states;
+  logic [WIDTH-1:0] pim_result_intermediate[NUM_OF_PIM_UNITS-1:0][CHUNK_SIZE**2-1:0];
 
   generate
     genvar i;
@@ -150,12 +150,19 @@ import types::*;
       pim_unit #(.ID(i)) pim_unit_inst (
           .clk(clk),
           .rst(rst),
-          .valid(start), // Should be chunk_sent : trigger when a sub chunk is being sent
+          .valid(pim_states[i].chunk_sent), // Should be chunk_sent : trigger when a sub chunk is being sent
           .matrixA(chunk_a_new[row][pim_states[i].current_chunk]),   // chunk_a[0] or chunk_a[1] //chunk_a_new[row][something]   something goes from 0 to NUM_PIM_UNIT_CHUNKS-1
           .matrixB(chunk_b_new[col][pim_states[i].current_chunk]),   // chunk_b[0] or chunk_b[1]  //chunk_a_new[column][something]
-          .result(pim_results_new[i][pim_states[i].current_chunk]),  // get result for each pim unit, each sub chunk, store and add into a register => send this to result aggr
+          .result(pim_result_intermediate[i]),  // get result for each pim unit, each sub chunk, store and add into a register => send this to result aggr
           .result_valid(pim_unit_done[i]) //done for each pim unit, each sub chunk
       );
+
+      // Assign intermediate to the original multi-dimensional array
+      always_comb begin
+        for (int idx = 0; idx < CHUNK_SIZE**2; idx++) begin
+          pim_results_new[idx][i][pim_states[i].current_chunk] = pim_result_intermediate[i][idx];
+        end
+      end
 
       //continuously adding the sub chunks together to get pim_result[i] final value
       always_ff @(posedge clk) begin
@@ -169,7 +176,32 @@ import types::*;
         end
       end
     
-      
+      always_comb begin
+        pim_states[i].next_state = pim_states[i].current_state;
+        case(pim_states[i].current_state) 
+            IDLE:               if(start) pim_states[i].next_state = SEND_CHUNK;
+            SEND_CHUNK:         pim_states[i].next_state = WAIT_PIM_UNIT; 
+            WAIT_PIM_UNIT:    begin
+                if (pim_states[i].current_chunk == $clog2(NUM_PIM_UNIT_CHUNKS)'(NUM_PIM_UNIT_CHUNKS - 1)) begin
+                  if (pim_unit_done[i]) begin
+                    pim_states[i].next_state = DONE;
+                  end else begin
+                    pim_states[i].next_state = WAIT_PIM_UNIT; 
+                  end
+
+                end
+                  
+                else begin
+                  if (pim_unit_done[i])
+                    pim_states[i].next_state = SEND_CHUNK;
+                  else
+                    pim_states[i].next_state = WAIT_PIM_UNIT;
+                end
+            end       
+            DONE:    pim_states[i].next_state = IDLE;
+        endcase
+      end
+
       always_ff @(posedge clk) begin
         //Full FSM
               //add individual chunk results =>  for result aggregator
@@ -178,8 +210,8 @@ import types::*;
 
         if (rst) begin
           pim_states[i].current_state <= IDLE;
-          pim_states[i].current_chunk <= 0;
-          pim_states[i].pim_fully_done <= 0;
+          pim_states[i].current_chunk <= '0;
+          pim_states[i].pim_fully_done <= '0;
         end
 
         else begin
@@ -189,36 +221,30 @@ import types::*;
 
             IDLE: begin
                 if (start) begin
-                    pim_states[i].current_chunk <= 0;
-                    pim_states[i].next_state <= SEND_CHUNK;
+                    pim_states[i].current_chunk <= '0;
                 end
             end
 
             SEND_CHUNK: begin
                 pim_states[i].chunk_sent <= 1'b1;
-                pim_states[i].next_state <= WAIT_PIM_UNIT; 
                 //adding results
             end
 
             WAIT_PIM_UNIT: begin
                 pim_states[i].chunk_sent <= 1'b0;
-
-                if (pim_unit_done[i]) begin
-                  if(pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS-1) begin
-                    pim_states[i].next_state <= DONE;
+                if (pim_states[i].current_chunk == $clog2(NUM_PIM_UNIT_CHUNKS)'(NUM_PIM_UNIT_CHUNKS - 1)) begin
+                  if (pim_unit_done[i]) begin
                     pim_states[i].pim_fully_done <= 1'b1;
                   end
                 end
-
-                else begin
-                  pim_states[i].current_chunk <= pim_states[i].current_chunk + 1;
-                  pim_states[i].next_state <= SEND_CHUNK;
+                  
+                else if (pim_states[i].next_state == SEND_CHUNK) begin
+                  pim_states[i].current_chunk <= pim_states[i].current_chunk + $clog2(NUM_PIM_UNIT_CHUNKS)'(1); //increment, go to next chunk
                 end
             end
 
             DONE: begin
               pim_states[i].pim_fully_done <= 1'b0; //Reset for next matrix operation (overall)- CHECK
-              pim_states[i].next_state <= IDLE;
             end
 
           endcase
@@ -232,8 +258,8 @@ import types::*;
 logic [NUM_OF_PIM_UNITS-1:0] fully_done_bits;
 
 generate
-for (genvar i = 0; i < NUM_OF_PIM_UNITS; i++) begin
-    assign fully_done_bits[i] = pim_states[i].pim_fully_done;
+for (genvar idx = 0; idx < NUM_OF_PIM_UNITS; idx++) begin
+    assign fully_done_bits[idx] = pim_states[idx].pim_fully_done;
 end
 endgenerate
 
