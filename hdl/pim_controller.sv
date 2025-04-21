@@ -27,7 +27,7 @@ import types::*;
   
 
   logic [WIDTH-1:0] pim_results[NUM_OF_PIM_UNITS-1:0][CHUNK_SIZE**2-1:0];
-  logic [WIDTH-1:0] pim_results_new[CHUNK_SIZE**2-1:0][NUM_OF_PIM_UNITS-1:0][NUM_PIM_UNIT_CHUNKS-1:0];
+  logic [WIDTH-1:0] pim_results_new[NUM_OF_PIM_UNITS-1:0][NUM_PIM_UNIT_CHUNKS-1:0][CHUNK_SIZE**2-1:0];
 
   logic [NUM_OF_PIM_UNITS-1:0] pim_unit_done;
   logic all_pims_done;
@@ -119,7 +119,6 @@ import types::*;
 
   // Chunk control signals
   logic all_chunks_sent;
-  logic [NUM_OF_PIM_UNITS-1:0] pim_unit_busy;
 
   typedef enum logic [1:0] {
       IDLE,
@@ -160,7 +159,7 @@ import types::*;
       // Assign intermediate to the original multi-dimensional array
       always_comb begin
         for (int idx = 0; idx < CHUNK_SIZE**2; idx++) begin
-          pim_results_new[idx][i][pim_states[i].current_chunk] = pim_result_intermediate[i][idx];
+          pim_results_new[i][pim_states[i].current_chunk][idx] = pim_result_intermediate[i][idx];
         end
       end
 
@@ -182,13 +181,12 @@ import types::*;
             IDLE:               if(start) pim_states[i].next_state = SEND_CHUNK;
             SEND_CHUNK:         pim_states[i].next_state = WAIT_PIM_UNIT; 
             WAIT_PIM_UNIT:    begin
-                if (pim_states[i].current_chunk == $clog2(NUM_PIM_UNIT_CHUNKS)'(NUM_PIM_UNIT_CHUNKS - 1)) begin
+                if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
                   if (pim_unit_done[i]) begin
                     pim_states[i].next_state = DONE;
                   end else begin
                     pim_states[i].next_state = WAIT_PIM_UNIT; 
                   end
-
                 end
                   
                 else begin
@@ -211,6 +209,7 @@ import types::*;
         if (rst) begin
           pim_states[i].current_state <= IDLE;
           pim_states[i].current_chunk <= '0;
+          pim_states[i].chunk_sent <= '0;
           pim_states[i].pim_fully_done <= '0;
         end
 
@@ -232,14 +231,14 @@ import types::*;
 
             WAIT_PIM_UNIT: begin
                 pim_states[i].chunk_sent <= 1'b0;
-                if (pim_states[i].current_chunk == $clog2(NUM_PIM_UNIT_CHUNKS)'(NUM_PIM_UNIT_CHUNKS - 1)) begin
+                if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
                   if (pim_unit_done[i]) begin
                     pim_states[i].pim_fully_done <= 1'b1;
                   end
                 end
                   
                 else if (pim_states[i].next_state == SEND_CHUNK) begin
-                  pim_states[i].current_chunk <= pim_states[i].current_chunk + $clog2(NUM_PIM_UNIT_CHUNKS)'(1); //increment, go to next chunk
+                  pim_states[i].current_chunk <= pim_states[i].current_chunk + unsigned'(1); //increment, go to next chunk
                 end
             end
 

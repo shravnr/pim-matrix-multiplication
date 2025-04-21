@@ -79,6 +79,7 @@ import types::*;
                 end
 
                 READ_MATRICES: begin
+                    $display("Start time [%0t]", $time);
 
                     for (int i = 0; i < MATRIX_SIZE**2; i++) begin
                         matrix_A[i] <= mem[src1_addr + i];
@@ -99,7 +100,8 @@ import types::*;
                     for (int i = 0; i < MATRIX_SIZE**2; i++) begin
                         mem[dst_addr + i] <= result[i];
                     end
-
+                    
+                    $display("End time [%0t]", $time);
                     // done<=1;
                     // busy<=0;
                 end
