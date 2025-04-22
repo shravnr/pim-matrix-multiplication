@@ -9,8 +9,6 @@ Graph 1: Execution time vs Type of Processor (PIM and normal CPU)
 
 Tool flow- RTL implementation in SystemVerilog -> Simulation in VCS  
 
-Date of Completion- 15th April 2025 
-
  
 
 Graph 2: Execution time vs PIM Unit Capacity (for matrix size 64)
@@ -19,7 +17,6 @@ Graph 2: Execution time vs PIM Unit Capacity (for matrix size 64)
 
 Tool flow- RTL implementation in SystemVerilog -> Simulation in VCS  
 
-Date of Completion- 20th April 2025 
 
  
 
