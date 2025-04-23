@@ -18,7 +18,10 @@ Graph 2: Execution time vs PIM Unit Capacity (for matrix size 64)
 Tool flow- RTL implementation in SystemVerilog -> Simulation in VCS  
 
 
- 
+Graph 3: Execution Time- Dense vs Sparse
+Specs- 4 x 4 matrix size, 2 PIM_UNIT_CAPACITY, 4 PIM units, first sub-chunk A is 0
+Sparse- start time 7k, end time 23k
+Dense- start time 7k, end time 27k
 
 Graph 3: Execution time vs No. of PIM units for a given matrix size 
 

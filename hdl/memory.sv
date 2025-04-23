@@ -70,6 +70,28 @@ import types::*;
             for (int i = 0; i < MEM_ELEMENTS; i++) begin
                 mem[i] <= i;
             end
+            //sub chunk 0 is 0
+            /*
+            mem[100]<=0;
+            mem[101]<=0;
+            mem[104]<=0;
+            mem[105]<=0;
+            mem[108]<=0;
+            mem[109]<=0;
+            mem[112]<=0;
+            mem[113]<=0;
+            /*
+            //sub chunk 1 is 0
+            mem[102]<=0;
+            mem[103]<=0;
+            mem[106]<=0;
+            mem[107]<=0;
+            mem[110]<=0;
+            mem[111]<=0;
+            mem[114]<=0;
+            mem[115]<=0;
+            */
+
         end else begin
             case(current_state)
 

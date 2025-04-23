@@ -35,6 +35,8 @@ import types::*;
   logic [WIDTH-1:0] matrixA_2d [MATRIX_SIZE-1:0][MATRIX_SIZE-1:0];
   logic [WIDTH-1:0] matrixB_2d [MATRIX_SIZE-1:0][MATRIX_SIZE-1:0];
 
+  
+
 
 /*****Input Partition Logic******/
   always_comb begin
@@ -119,6 +121,7 @@ import types::*;
 
   // Chunk control signals
   logic all_chunks_sent;
+  //logic [NUM_OF_PIM_UNITS-1:0] pim_unit_done_last_0;
 
   typedef enum logic [1:0] {
       IDLE,
@@ -133,6 +136,7 @@ import types::*;
       logic chunk_sent;
       logic busy;
       logic pim_fully_done;
+      logic all_zeros;
   } pim_unit_struct;
 
   pim_unit_struct [NUM_OF_PIM_UNITS-1:0] pim_states;
@@ -159,10 +163,15 @@ import types::*;
       // Assign intermediate to the original multi-dimensional array
       always_comb begin
         for (int idx = 0; idx < CHUNK_SIZE**2; idx++) begin
-          pim_results_new[i][pim_states[i].current_chunk][idx] = pim_result_intermediate[i][idx];
+          if(pim_states[i].all_zeros==0)
+            pim_results_new[i][pim_states[i].current_chunk][idx] = pim_result_intermediate[i][idx];
+          else
+            pim_results_new[i][pim_states[i].current_chunk][idx] = {(CHUNK_SIZE * PIM_UNIT_CAPACITY){1'b0}}; //setting 0 to result
+
         end
       end
 
+      
       //continuously adding the sub chunks together to get pim_result[i] final value
       always_ff @(posedge clk) begin
         if (rst) begin
@@ -174,12 +183,38 @@ import types::*;
             pim_results[i][k] <= pim_results[i][k] + pim_results_new[i][pim_states[i].current_chunk][k];
         end
       end
+
+      
     
       always_comb begin
         pim_states[i].next_state = pim_states[i].current_state;
         case(pim_states[i].current_state) 
             IDLE:               if(start) pim_states[i].next_state = SEND_CHUNK;
-            SEND_CHUNK:         pim_states[i].next_state = WAIT_PIM_UNIT; 
+            SEND_CHUNK:  begin     
+              pim_states[i].all_zeros =1'b1;
+              for(int j=0; j<CHUNK_SIZE ;j++) 
+                for(int k=0; k<PIM_UNIT_CAPACITY; k++) 
+                  pim_states[i].all_zeros = pim_states[i].all_zeros &  ((chunk_a_new[row][pim_states[i].current_chunk][j][k]==0) || (chunk_b_new[col][pim_states[i].current_chunk][k][j]==0));
+
+              //pim_unit_done_last_0[i]= 1'b0;
+              if(pim_states[i].all_zeros) 
+                pim_states[i].next_state = SEND_CHUNK; //already know result is 0, so we don't need PIM WAIT.
+                /*
+                if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
+                  //LOGIC HERE TO GO TO DONE
+                  pim_states[i].next_state = DONE;
+                  //pim_unit_done_last_0[i]= 1'b1;
+                end 
+                */
+              else             
+                pim_states[i].next_state = WAIT_PIM_UNIT;
+
+              if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
+                //ADD LOGIC HERE TO GO TO DONE
+              end
+
+            end
+
             WAIT_PIM_UNIT:    begin
                 if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
                   if (pim_unit_done[i]) begin
@@ -207,6 +242,7 @@ import types::*;
               //get pim_unit_done from pim_unit module and increment only if it's high
 
         if (rst) begin
+          
           pim_states[i].current_state <= IDLE;
           pim_states[i].current_chunk <= '0;
           pim_states[i].chunk_sent <= '0;
@@ -225,12 +261,19 @@ import types::*;
             end
 
             SEND_CHUNK: begin
-                pim_states[i].chunk_sent <= 1'b1;
-                //adding results
+
+                if(pim_states[i].all_zeros) begin
+                  pim_states[i].chunk_sent <= 1'b0; //NO TRIGGER for PIM_UNIT
+                  pim_states[i].current_chunk <= pim_states[i].current_chunk + unsigned'(1);
+                end
+
+                else begin
+                  pim_states[i].chunk_sent <= 1'b1;
+                end
             end
 
             WAIT_PIM_UNIT: begin
-                pim_states[i].chunk_sent <= 1'b0;
+                pim_states[i].chunk_sent <= 1'b0; //release trigger
                 if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
                   if (pim_unit_done[i]) begin
                     pim_states[i].pim_fully_done <= 1'b1;
@@ -256,11 +299,27 @@ import types::*;
 // RESULT AGGREGATOR
 logic [NUM_OF_PIM_UNITS-1:0] fully_done_bits;
 
+//ORIGINAL- NOT WORKING IF THE 0 chunk is at the end////
 generate
 for (genvar idx = 0; idx < NUM_OF_PIM_UNITS; idx++) begin
     assign fully_done_bits[idx] = pim_states[idx].pim_fully_done;
 end
 endgenerate
+
+
+//MESSED UP, BROKEN result_ready is messed up and the memory fsm is wrong because of that////
+/*
+always_comb begin
+  for (int idx = 0; idx < NUM_OF_PIM_UNITS; idx++) begin
+      if(pim_unit_done_last_0[idx]==0)
+        fully_done_bits[idx] = pim_states[idx].pim_fully_done;
+      else
+        fully_done_bits[idx] = '1;
+  end
+end
+*/
+//////////////////////////
+
 
 assign all_pims_done = &fully_done_bits;
 

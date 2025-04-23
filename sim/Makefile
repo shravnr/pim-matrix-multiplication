@@ -9,7 +9,7 @@ VCS_SRCS  := $(PKG_SRCS) $(HDL_SRCS) $(HVL_SRCS)
 TIMEOUT   ?= 10000
 
 export VCS_ARCH_OVERRIDE=linux
-VCS_FLAGS    = +incdir+$(PWD)/../hvl/vcs -licqueue -full64 -lca -sverilog -timescale=1ps/1ps -debug_acc+all -kdb -suppress=LCA_FEATURES_ENABLED -msg_config=../vcs_warn.config -assert svaext
+VCS_FLAGS    = +incdir+$(PWD)/../hvl/vcs -licqueue -full64 -lca -sverilog -timescale=1ps/1ps -debug_acc+all -kdb -suppress=LCA_FEATURES_ENABLED -msg_config=../vcs_warn.config -assert svaext +vcs+dumpSAIF
 
 vcs/top_tb: $(VCS_SRCS)
 	mkdir -p vcs

@@ -1,0 +1,113 @@
+Info: [VCS_SAVE_RESTORE_INFO] ASLR (Address Space Layout Randomization) is detected on the machine. To enable $save functionality, ASLR will be switched off and simv re-executed.
+Please use '-no_save' simv switch to avoid this.
+
+                           Design Compiler Graphical 
+                                 DC Ultra (TM)
+                                  DFTMAX (TM)
+                              Power Compiler (TM)
+                                 DesignWare (R)
+                                 DC Expert (TM)
+                               Design Vision (TM)
+                               HDL Compiler (TM)
+                               VHDL Compiler (TM)
+                                  DFT Compiler
+                               Design Compiler(R)
+
+                 Version W-2024.09 for linux64 - Aug 27, 2024 
+
+                    Copyright (c) 1988 - 2024 Synopsys, Inc.
+   This software and the associated documentation are proprietary to Synopsys,
+ Inc. This software may only be used in accordance with the terms and conditions
+ of a written license agreement with Synopsys, Inc. All other use, reproduction,
+   or distribution of this software is strictly prohibited.  Licensed Products
+     communicate with Synopsys servers for the purpose of providing software
+    updates, detecting software piracy and verifying that customers are using
+    Licensed Products in conformity with the applicable License Key for such
+  Licensed Products. Synopsys will use information gathered in connection with
+    this process to deliver software updates and pursue software pirates and
+                                   infringers.
+
+ Inclusivity & Diversity - Visit SolvNetPlus to read the "Synopsys Statement on
+            Inclusivity and Diversity" (Refer to article 000036315 at
+                        https://solvnetplus.synopsys.com)
+Initializing...
+Current time:       Tue Apr 22 19:59:11 2025
+Hostname:           eceb-2022-01.ews.illinois.edu
+CPU Model:          Intel(R) Xeon(R) E-2224 CPU @ 3.40GHz
+CPU Details:        Cores = 4 : Sockets = 1 : Cache Size = 8192 KB : Freq = 3.40 GHz
+OS:                 Linux 4.18.0-553.50.1.el8_10.x86_64
+RAM:                 15 GB (Free   0 GB)
+Swap:                 7 GB (Free   7 GB)
+Work Filesystem:    /home/sandhya7 mounted to ews-homes-inst-prod.engrit.illinois.edu:/ewshomes/fspool-s/sandhya7/linux
+Tmp Filesystem:     /tmp mounted to /dev/mapper/eceb_2022_01_sys-tmp
+Work Disk:           25 GB (Free  22 GB)
+Tmp Disk:             7 GB (Free   7 GB)
+
+CPU Load: 8%, Ram Free: 0 GB, Swap Free: 7 GB, Work Disk Free: 22 GB, Tmp Disk Free: 7 GB
+# Set search paths
+set search_path [list ../hdl ../hvl ../sim ./ ../pkg ]
+../hdl ../hvl ../sim ./ ../pkg
+set target_library [list /software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib]
+/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib
+set link_library "* /software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib"
+* /software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib
+set verilog_use_systemverilog true
+true
+# Read your design RTL files
+read_verilog {../hdl/memory.sv ../pkg/types.sv}
+Loading db file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib'
+Error: File is not a DB file. (DB-1)
+Error: The file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib' is not a DB file.
+Loading db file '/software/Synopsys-2024_x86_64/syn/W-2024.09/libraries/syn/gtech.db'
+Loading db file '/software/Synopsys-2024_x86_64/syn/W-2024.09/libraries/syn/standard.sldb'
+Loading db file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib'
+Error: File is not a DB file. (DB-1)
+Error: The file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib' is not a DB file.
+  Loading link library 'gtech'
+Loading verilog files: '/home/sandhya7/pim-matrix-multiplication/hdl/memory.sv' '/home/sandhya7/pim-matrix-multiplication/pkg/types.sv' 
+Detecting input file type automatically (-rtl or -netlist).
+Reading with Presto HDL Compiler (equivalent to -rtl option).
+Running PRESTO HDLC
+Loading db file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib'
+Error: File is not a DB file. (DB-1)
+Error: The file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib' is not a DB file.
+Warning: Can't read link_library file '/software/Synopsys-2024_x86_64/primelib/W-2024.09/ncx/demo/test2cell.lib'. (UID-3)
+Compiling source file /home/sandhya7/pim-matrix-multiplication/hdl/memory.sv
+Error:  /home/sandhya7/pim-matrix-multiplication/hdl/memory.sv:2: Syntax error at or near token 'import'. (VER-294)
+Compiling source file /home/sandhya7/pim-matrix-multiplication/pkg/types.sv
+Error:  /home/sandhya7/pim-matrix-multiplication/pkg/types.sv:1: Syntax error at or near token ';'. (VER-294)
+*** Presto compilation terminated with 2 errors. ***
+Error: Can't read 'verilog' files '/home/sandhya7/pim-matrix-multiplication/hdl/memory.sv', '/home/sandhya7/pim-matrix-multiplication/pkg/types.sv'. (UID-9)
+No designs were read
+# Set top-level module
+set_top memory
+Error: extra positional option 'memory' (CMD-012)
+Error: Required argument '-block_references' was not found (CMD-007)
+# Set clock constraints (adjust period if needed)
+create_clock -period 2.0 [get_ports clk]
+Error: Current design is not defined. (UID-4)
+Error: Can't find port 'clk'. (UID-109)
+Error: Value for list 'source_objects' must have 1 elements. (CMD-036)
+0
+# Elaborate and synthesize
+elaborate
+Error: Required argument 'design_name' was not found (CMD-007)
+compile_ultra
+Error: Current design is not defined. (UID-4)
+0
+# Write out the synthesized netlist and SDF
+write -format verilog -hierarchy -output memory_netlist.v
+Error: No files or designs were specified. (UID-22)
+0
+write_sdf memory.sdf
+Error: Current design is not defined. (UID-4)
+0
+0
+dc_shell> quit
+
+Memory usage for this session 111 Mbytes.
+Memory usage for this session including child processes 111 Mbytes.
+CPU usage for this session 2 seconds ( 0.00 hours ).
+Elapsed time for this session 118 seconds ( 0.03 hours ).
+
+Thank you...

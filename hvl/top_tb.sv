@@ -75,6 +75,19 @@ module top_tb;
         rst = 1'b0;
     end
 
+    //Power
+    initial begin
+        // Start toggle monitoring
+        $set_toggle_region("dut");  // 'dut' is the name of your memory module instance
+        $toggle_start();
+
+        // Wait until simulation ends (or timeout)
+        wait (timeout == 0);
+        $toggle_stop();
+        $toggle_report("dump.saif", 1.0e-9, "dut");
+    end
+
+
     memory dut (
         .clk(clk),
         .rst(rst),
