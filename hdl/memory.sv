@@ -67,11 +67,28 @@ import types::*;
     //State Logic
     always_ff @(posedge clk) begin
         if(rst) begin
+            //DENSE
+            // X X
+            // X X
             for (int i = 0; i < MEM_ELEMENTS; i++) begin
                 mem[i] <= i;
             end
-            //sub chunk 0 is 0
+            //SPARSE
+            // one diagonal matrix from 0 
             /*
+            for (int i = 0; i < MATRIX_SIZE**2; i++) begin
+                automatic int row = i / MATRIX_SIZE;
+                automatic int col = i % MATRIX_SIZE;
+                if (row != col) begin
+                    mem[i] <= 0;
+                end
+            end
+            */
+
+            
+            /*
+            // 0 X
+            // 0 X
             mem[100]<=0;
             mem[101]<=0;
             mem[104]<=0;
@@ -81,7 +98,8 @@ import types::*;
             mem[112]<=0;
             mem[113]<=0;
             /*
-            //sub chunk 1 is 0
+            // X 0
+            // X 0
             mem[102]<=0;
             mem[103]<=0;
             mem[106]<=0;
@@ -89,8 +107,33 @@ import types::*;
             mem[110]<=0;
             mem[111]<=0;
             mem[114]<=0;
+            mem[115]<=0; */
+
+            /*
+            //  X 0
+            //  0 X
+            mem[102]<=0;
+            mem[103]<=0;
+            mem[106]<=0;
+            mem[107]<=0;
+            mem[108]<=0;
+            mem[109]<=0;
+            mem[112]<=0;
+            mem[113]<=0;
+           */
+
+            /*
+            //  0 X
+            //  X 0
+            mem[100]<=0;
+            mem[101]<=0;
+            mem[104]<=0;
+            mem[105]<=0;
+            mem[110]<=0;
+            mem[111]<=0;
+            mem[114]<=0;
             mem[115]<=0;
-            */
+           */
 
         end else begin
             case(current_state)

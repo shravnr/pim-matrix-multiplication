@@ -121,7 +121,7 @@ import types::*;
 
   // Chunk control signals
   logic all_chunks_sent;
-  //logic [NUM_OF_PIM_UNITS-1:0] pim_unit_done_last_0;
+  logic [NUM_OF_PIM_UNITS-1:0] pim_unit_done_last_0;
 
   typedef enum logic [1:0] {
       IDLE,
@@ -134,7 +134,7 @@ import types::*;
       state_t current_state, next_state;
       logic [$clog2(NUM_PIM_UNIT_CHUNKS)-1:0] current_chunk;
       logic chunk_sent;
-      logic busy;
+      // logic busy;
       logic pim_fully_done;
       logic all_zeros;
   } pim_unit_struct;
@@ -196,16 +196,16 @@ import types::*;
                 for(int k=0; k<PIM_UNIT_CAPACITY; k++) 
                   pim_states[i].all_zeros = pim_states[i].all_zeros &  ((chunk_a_new[row][pim_states[i].current_chunk][j][k]==0) || (chunk_b_new[col][pim_states[i].current_chunk][k][j]==0));
 
-              //pim_unit_done_last_0[i]= 1'b0;
-              if(pim_states[i].all_zeros) 
+              pim_unit_done_last_0[i]= 1'b0;
+              if(pim_states[i].all_zeros) begin
                 pim_states[i].next_state = SEND_CHUNK; //already know result is 0, so we don't need PIM WAIT.
-                /*
+                
                 if (pim_states[i].current_chunk == NUM_PIM_UNIT_CHUNKS - 1) begin
                   //LOGIC HERE TO GO TO DONE
                   pim_states[i].next_state = DONE;
-                  //pim_unit_done_last_0[i]= 1'b1;
+                  pim_unit_done_last_0[i]= 1'b1;
                 end 
-                */
+              end
               else             
                 pim_states[i].next_state = WAIT_PIM_UNIT;
 
@@ -298,26 +298,24 @@ import types::*;
 
 // RESULT AGGREGATOR
 logic [NUM_OF_PIM_UNITS-1:0] fully_done_bits;
-
+/*
 //ORIGINAL- NOT WORKING IF THE 0 chunk is at the end////
 generate
 for (genvar idx = 0; idx < NUM_OF_PIM_UNITS; idx++) begin
     assign fully_done_bits[idx] = pim_states[idx].pim_fully_done;
 end
 endgenerate
-
+*/
 
 //MESSED UP, BROKEN result_ready is messed up and the memory fsm is wrong because of that////
-/*
+
 always_comb begin
   for (int idx = 0; idx < NUM_OF_PIM_UNITS; idx++) begin
-      if(pim_unit_done_last_0[idx]==0)
-        fully_done_bits[idx] = pim_states[idx].pim_fully_done;
-      else
+      fully_done_bits[idx] = pim_states[idx].pim_fully_done;
+      if(pim_unit_done_last_0[idx])
         fully_done_bits[idx] = '1;
   end
 end
-*/
 //////////////////////////
 
 

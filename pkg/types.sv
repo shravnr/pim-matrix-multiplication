@@ -4,13 +4,13 @@ package types;
     parameter int PIM_UNIT_CAPACITY = 2;
     
 
-    parameter int MATRIX_SIZE = 4;
+    parameter int MATRIX_SIZE =512;
     parameter int CHUNK_SIZE = MATRIX_SIZE/$sqrt(NUM_OF_PIM_UNITS);
 
     parameter int NUM_PIM_UNIT_CHUNKS = MATRIX_SIZE/PIM_UNIT_CAPACITY;
     
     parameter int WIDTH = 32; // Data width
-    parameter int MEM_ELEMENTS = 1024;
+    parameter int MEM_ELEMENTS = 1024;   // Usually 1024 for 4x4 matrix
     parameter int LEN = $clog2(MEM_ELEMENTS); // Adress width, original 10, changed to align with top_tb.sv
 
 
