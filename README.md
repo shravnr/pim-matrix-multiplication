@@ -19,31 +19,22 @@ Tool flow- RTL implementation in SystemVerilog -> Simulation in VCS
 
 
 Graph 3: Execution Time- Dense vs Sparse
+
+
+A.
 Specs- 4 x 4 matrix size, 2 PIM_UNIT_CAPACITY, 4 PIM units
 
-first sub-chunk A is 0
-Sparse- start time 7k, end time 23k
-Dense- start time 7k, end time 27k
 
-second sub-chunk A is 0
-Sparse- start time 7k, end time 21k
-Dense- start time 7k, end time 27k
+B.
+Specs- 16 x 16  matrices, 4 PIM units 
 
 
-Specs- 16 x 16  matrices, 2 PIM_UNIT_CAPACITY, 4 PIM units
-Sparse (2 diagonal)- 7k to 47k
-Dense- 7k to 63k
 
-Specs- 16 x 16  matrices, 1 PIM_UNIT_CAPACITY, 4 PIM units
-Sparse (2 diagonal)- 7k to 79k
-Dense- 7k to 111k
-
-
-Graph 4: Execution time vs No. of PIM units for a given matrix size 
-Equal timing, hopefully power is different (Vivado)
-
-Graph 5: Execution time vs Matrix Size
+Graph 4: Execution time vs Matrix Size
 Specs- 2 PIM_UNIT_CAPACITY, 4 PIM units
+
+Graph 5: Execution time vs No. of PIM units for a given matrix size // (additional)
+Equal timing, hopefully power is different (Vivado)
 
 
 Tool flow- RTL implementation in SystemVerilog with Dynamic allocation (scaling) -> Simulation in VCS (PIM) -> Full RTL Implementation of CPU for comparison
