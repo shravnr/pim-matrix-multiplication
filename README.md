@@ -11,7 +11,7 @@ Graph 2: Execution time vs PIM Unit Capacity (for matrix size 64- dense matrix)
 
 Graph 3: Execution time vs Matrix Size
 Specs- 2 PIM_UNIT_CAPACITY, 4 PIM units
-![Graph 3](https://github.com/user-attachments/assets/458be83f-7248-418b-bde2-c354895c1caa)
+![Graph 3](https://github.com/shravnr/pim-matrix-multiplication/blob/master/graph3.png?raw=true)
 
 Graph 4: Execution Time- Dense vs Sparse
 Specs- 16 x 16  matrices, 4 PIM units 

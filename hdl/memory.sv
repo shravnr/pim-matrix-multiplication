@@ -75,14 +75,14 @@ import types::*;
             end
             //SPARSE
             // one diagonal matrix from 0 
-            
+            /*
             for (int i = 0; i < MATRIX_SIZE**2; i++) begin
                 automatic int row = i / MATRIX_SIZE;
                 automatic int col = i % MATRIX_SIZE;
                 if (row != col) begin
                     mem[i] <= 0;
                 end
-            end
+            end*/
             
 
             
