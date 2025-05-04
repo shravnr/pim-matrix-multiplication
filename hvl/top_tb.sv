@@ -16,13 +16,17 @@ module top_tb;
     bit rst;
     longint timeout;
 
-    logic [LEN-1:0] src1_addr;
-    logic [LEN-1:0] src2_addr;
-    logic [LEN-1:0] dst_addr;
+    logic [ADDRESS_LEN-1:0] src1_addr;
+    logic [ADDRESS_LEN-1:0] src2_addr;
+    logic [ADDRESS_LEN-1:0] dst_addr;
     logic start;
 
+
+ 
+    
+
     int fd, status;
-    logic [LEN-1:0] t_src1, t_src2, t_dst;
+    logic [ADDRESS_LEN-1:0] t_src1, t_src2, t_dst;
     logic t_start; 
     int t_delay;
 
@@ -39,6 +43,7 @@ module top_tb;
         // Loop through the file until EOF.
         while (!$feof(fd)) begin
             status = $fscanf(fd, "%d %d %d %d %d\n", t_src1, t_src2, t_dst, t_start, t_delay);
+            $display("Status,", status);
             if (status != 5) begin
                 $display("Incomplete data read (status = %0d), stopping stimulus.", status);
                 break;
@@ -88,13 +93,15 @@ module top_tb;
     end
 
 
-    memory dut (
+  
+    top_design dut (
         .clk(clk),
         .rst(rst),
         .src1_addr(src1_addr),
         .src2_addr(src2_addr),
         .dst_addr(dst_addr),
         .start(start)
+
     );
 
     always @(posedge clk) begin
@@ -107,5 +114,6 @@ module top_tb;
 
     final begin
         $display("Monitor: Simulation finished");
+      
     end
 endmodule

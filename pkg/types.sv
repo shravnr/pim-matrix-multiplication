@@ -10,10 +10,24 @@ package types;
 
     parameter int NUM_PIM_UNIT_CHUNKS = MATRIX_SIZE/PIM_UNIT_CAPACITY;
     
-    parameter int WIDTH = 32; // Data width
-    parameter int MEM_ELEMENTS = 1024;   // Usually 1024 for 4x4 matrix
+    parameter int WIDTH = 64; // Data width
+    parameter int MEM_ELEMENTS = 1024;
     parameter int LEN = $clog2(MEM_ELEMENTS); // Adress width, original 10, changed to align with top_tb.sv
 
+    
+    //ASSUMPTION WIDTH = BURST ACCESS WIDTH
+
+    //DRAM
+    parameter int BURST_LEN= 4;
+    parameter int BURST_ACCESS_WIDTH= 64;
+    parameter int PRECHARGE_CYCLES= 10;
+    parameter int DISCHARGE_CYCLES=10;
+    parameter int BANK_ACTIVATION_CYCLES= 20;
+
+    parameter int ROW_WIDTH= 512;
+    parameter int NUM_BANKS= 1;
+    parameter int NUM_ROWS= 1024;
+    parameter int ADDRESS_LEN=10;         //(at least $clog2(NUM_BANKS*NUM_ROWS))
 
 endpackage
 

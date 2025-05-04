@@ -3,12 +3,24 @@ import types::*;
 (
     input         clk,
     input         rst,
-    input logic [LEN-1:0] src1_addr,
-    input logic [LEN-1:0] src2_addr,
-    input logic [LEN-1:0] dst_addr,
-    // input logic [2:0]     matrix_size,
+    input logic [ADDRESS_LEN-1:0] src1_addr,
+    input logic [ADDRESS_LEN-1:0] src2_addr,
+    input logic [ADDRESS_LEN-1:0] dst_addr,
+    input logic start,
 
-    input logic start
+    //To DRAM (dram.sv)
+    output logic [ADDRESS_LEN-1:0] addr, // [LEN-1:0]
+    output logic        read_en,
+    output logic        write_en,
+    output logic [BURST_ACCESS_WIDTH-1:0] wdata, 
+
+    //From DRAM (dram.sv) 
+    input  logic             dram_ready,
+    input  logic             dram_complete,
+    input  logic [BURST_ACCESS_WIDTH-1:0] rdata, 
+    input  logic             valid
+
+
 );
 
     // Memory
@@ -23,32 +35,167 @@ import types::*;
     //Output from PIM-C
     logic result_ready;
 
+    logic [2:0] i;
+
+    logic [31:0] a_req_count, b_req_count, w_req_count;
+
     //Memory FSM States
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         IDLE,
-        READ_MATRICES,
+        READ_A,
+        READ_B,
         COMPUTE,
         WRITE_RESULT
     } state_t;
 
     state_t current_state, next_state;
-    
+
 
 
     //Drive State Machine
     always_ff @(posedge clk) begin
         if(rst) current_state <= IDLE;
-        else    current_state <= next_state;
+        else    begin
+            current_state <= next_state;
+
+            case(current_state) 
+                IDLE:               begin
+                                        i <= 0;
+                                        a_req_count <= '0;
+                                        b_req_count <= '0;
+                                        w_req_count <= '0;
+                                        write_en <= 1'b0;
+                                        read_en <= 1'b0;
+                                    end
+
+
+
+                READ_A:             begin
+                                        if(dram_ready) begin
+                                            
+                                            read_en <= 1'b1;
+                                            addr <= src1_addr; // + a_burst_count/4;
+                                        end
+
+                                        if(valid) begin
+                                            i <= i + 1;
+                                            matrix_A[a_req_count*BURST_LEN + i] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+                                        end
+
+                                        if(dram_complete) begin
+                                            i <= 0;
+                                            a_req_count <= a_req_count + unsigned'(1);  
+                                            read_en = 1'b0;
+                                        end
+
+
+                                        
+                                    end
+
+
+                READ_B:             begin
+                                        
+                                        if(dram_ready) begin
+
+                                            read_en <= 1'b1;
+                                            addr <= src2_addr; // + b_burst_count/4;
+                                        end
+
+                                        if(valid) begin
+                                            i <= i + 1;
+                                            matrix_B[b_req_count*BURST_LEN + i] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+                                        end
+
+                                        
+
+                                        if(dram_complete) begin
+                                            i <= 0;
+                                            b_req_count <= b_req_count + unsigned'(1);
+                                            //matrix_A[b_burst_count] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+                                            read_en = 1'b0;
+
+                                            if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                                pim_unit_start <= 1'b1;
+
+                                            end
+                                        end
+
+                                        
+
+                                     
+                                    end     
+
+                COMPUTE:            begin 
+                                        read_en <=1'b0;
+                                        write_en<=1'b0;
+
+                                    end                 
+
+                WRITE_RESULT:       
+                                    begin
+                                        if(dram_ready) begin
+                                            write_en <= 1'b1;
+                                            addr <= src1_addr; // + w_burst_count/4;
+                                        end
+
+                                        if(valid) begin
+                                            i <= i + 1;
+                                            wdata <= result[w_req_count*BURST_LEN + i]; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+                                        end
+
+                                        if(dram_complete) begin
+                                            w_req_count <= w_req_count + unsigned'(1);
+                                            i <= w_req_count;
+                                            write_en <= 1'b0;
+                                        end
+
+                                    end
+
+                // default: next_state = IDLE;
+            endcase
+        end
     end
 
     //State Transition Logic
     always_comb begin
         next_state = current_state;
+        // write_en = 1'b0;
+        // read_en =1'b0;
+        
         case(current_state) 
-            IDLE:               if(start) next_state = READ_MATRICES;
-            READ_MATRICES:      next_state = COMPUTE;
+            IDLE:               if(start) next_state = READ_A;
+                            
+            READ_A:             begin
+                                    if(dram_complete) begin
+                                        if (a_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                            next_state = READ_B;
+                                        end
+                                    end
+                                end
+
+
+            READ_B:             begin
+                                    if(dram_complete) begin
+                                        if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                            next_state = COMPUTE;
+                                        end
+                                    end
+                                end
+
+                               
+
             COMPUTE:            if(result_ready) next_state = WRITE_RESULT;
-            WRITE_RESULT:       next_state= IDLE;
+
+            WRITE_RESULT:       
+                                begin
+                                    if(dram_complete) begin
+                                        if (w_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                            next_state = IDLE;
+                                        end
+                                    end
+                                end
+
+            // default: next_state = IDLE;
         endcase
     end
 
@@ -64,118 +211,6 @@ import types::*;
         .result_ready(result_ready)//output from PIM-C-- but does it need to communicate with memory? might need another wrapper here 
     );
 
-    //State Logic
-    always_ff @(posedge clk) begin
-        if(rst) begin
-            //DENSE
-            // X X
-            // X X
-            for (int i = 0; i < MEM_ELEMENTS; i++) begin
-                mem[i] <= i;
-            end
-            //SPARSE
-            // one diagonal matrix from 0 
-            /*
-            for (int i = 0; i < MATRIX_SIZE**2; i++) begin
-                automatic int row = i / MATRIX_SIZE;
-                automatic int col = i % MATRIX_SIZE;
-                if (row != col) begin
-                    mem[i] <= 0;
-                end
-            end*/
-            
-
-            
-            /*
-            // 0 X
-            // 0 X
-            mem[100]<=0;
-            mem[101]<=0;
-            mem[104]<=0;
-            mem[105]<=0;
-            mem[108]<=0;
-            mem[109]<=0;
-            mem[112]<=0;
-            mem[113]<=0;
-            /*
-            // X 0
-            // X 0
-            mem[102]<=0;
-            mem[103]<=0;
-            mem[106]<=0;
-            mem[107]<=0;
-            mem[110]<=0;
-            mem[111]<=0;
-            mem[114]<=0;
-            mem[115]<=0; */
-
-            /*
-            //  X 0
-            //  0 X
-            mem[102]<=0;
-            mem[103]<=0;
-            mem[106]<=0;
-            mem[107]<=0;
-            mem[108]<=0;
-            mem[109]<=0;
-            mem[112]<=0;
-            mem[113]<=0;
-           */
-
-            /*
-            //  0 X
-            //  X 0
-            mem[100]<=0;
-            mem[101]<=0;
-            mem[104]<=0;
-            mem[105]<=0;
-            mem[110]<=0;
-            mem[111]<=0;
-            mem[114]<=0;
-            mem[115]<=0;
-           */
-
-        end else begin
-            case(current_state)
-
-                IDLE: begin
-                    // busy<=0;
-                    // done<=0;
-                end
-
-                READ_MATRICES: begin
-                    $display("Start time [%0t]", $time);
-
-                    for (int i = 0; i < MATRIX_SIZE**2; i++) begin
-                        matrix_A[i] <= mem[src1_addr + i];
-                        matrix_B[i] <= mem[src2_addr + i];
-                    end
-
-                    // busy<=1;
-                    pim_unit_start <= 1'b1;
-
-                end
-
-                COMPUTE: begin
-                    pim_unit_start <= 1'b0;
-                end
-
-                WRITE_RESULT: begin
-
-                    for (int i = 0; i < MATRIX_SIZE**2; i++) begin
-                        mem[dst_addr + i] <= result[i];
-                    end
-                    
-                    $display("End time [%0t]", $time);
-                    // done<=1;
-                    // busy<=0;
-                end
-                
-
-            endcase
-        end
-
-    end
 
 
 endmodule
