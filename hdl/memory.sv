@@ -79,7 +79,14 @@ import types::*;
 
                                         if(valid) begin
                                             i <= i + 1;
-                                            matrix_A[a_req_count*BURST_LEN + i] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+
+                                            // matrix_A[a_req_count*BURST_LEN + i] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+
+                                            //BURST_LENGTH = ROW_WIDTH
+                                            for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
+                                                matrix_A[a_req_count*(ROW_WIDTH/WIDTH) + y] <= rdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ];
+
+                                            
                                         end
 
                                         if(dram_complete) begin
@@ -103,7 +110,11 @@ import types::*;
 
                                         if(valid) begin
                                             i <= i + 1;
-                                            matrix_B[b_req_count*BURST_LEN + i] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+                                            //matrix_B[b_req_count*BURST_LEN + i] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+
+                                            //BURST_LENGTH = ROW_WIDTH
+                                            for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
+                                                matrix_B[b_req_count*(ROW_WIDTH/WIDTH) + y] <= rdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ];
                                         end
 
                                         
@@ -114,7 +125,8 @@ import types::*;
                                             //matrix_A[b_burst_count] <= rdata; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
                                             read_en = 1'b0;
 
-                                            if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                            //if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                            if (b_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin
                                                 pim_unit_start <= 1'b1;
 
                                             end
@@ -140,12 +152,19 @@ import types::*;
 
                                         if(valid) begin
                                             i <= i + 1;
-                                            wdata <= result[w_req_count*BURST_LEN + i]; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+                                            //wdata <= result[w_req_count*BURST_LEN + i]; //ASSUMPTION WORD LENGTH= BURST ACCESS WIDTH
+
+                                            //BURST_LENGTH = ROW_WIDTH
+                                            for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
+                                                // wdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ] <= result[w_req_count*(ROW_WIDTH/WIDTH) + y] ;
+                                                wdata[y*WIDTH +: WIDTH] <= result[w_req_count*(ROW_WIDTH/WIDTH) + y];
                                         end
+
+                                        
 
                                         if(dram_complete) begin
                                             w_req_count <= w_req_count + unsigned'(1);
-                                            i <= w_req_count;
+                                            i <= 0;
                                             write_en <= 1'b0;
                                         end
 
@@ -167,7 +186,8 @@ import types::*;
                             
             READ_A:             begin
                                     if(dram_complete) begin
-                                        if (a_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                        //if (a_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                        if (a_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin
                                             next_state = READ_B;
                                         end
                                     end
@@ -176,7 +196,8 @@ import types::*;
 
             READ_B:             begin
                                     if(dram_complete) begin
-                                        if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                        //if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                        if (b_req_count == (MATRIX_SIZE**2)/(ROW_WIDTH/WIDTH)) begin
                                             next_state = COMPUTE;
                                         end
                                     end
@@ -189,7 +210,8 @@ import types::*;
             WRITE_RESULT:       
                                 begin
                                     if(dram_complete) begin
-                                        if (w_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                        //if (w_req_count == MATRIX_SIZE**2/BURST_LEN) begin
+                                        if (w_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin
                                             next_state = IDLE;
                                         end
                                     end

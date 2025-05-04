@@ -317,7 +317,7 @@ for (genvar idx = 0; idx < NUM_OF_PIM_UNITS; idx++) begin
 end
 endgenerate
 */
-*/
+
 
 //MESSED UP, BROKEN result_ready is messed up and the memory fsm is wrong because of that////
 

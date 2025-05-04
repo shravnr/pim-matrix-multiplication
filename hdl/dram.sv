@@ -26,7 +26,6 @@ import types::*;
 
     //Counters
     logic [31:0] precharge_cycle_count;
-    logic [31:0] discharge_cycle_count;
     logic [31:0] bank_activation_cycles_count;
     logic [31:0] burst_count;
 
@@ -61,9 +60,9 @@ import types::*;
                                         next_state = BANK_ACTIVATE;   
                                     
                                     end
-                                end   
-            BANK_ACTIVATE:      begin
+                                end
 
+            BANK_ACTIVATE:      begin
 
                                 if(read_en==0 && write_en==0)
                                     next_state = IDLE;
@@ -114,7 +113,6 @@ import types::*;
         precharge_cycle_count <=0;
         bank_activation_cycles_count <=0;
         burst_count <=0;
-        discharge_cycle_count <=0;
         dram_ready<=1;
         dram_complete<=0;
         valid<=1'b0;
