@@ -141,7 +141,6 @@ import types::*;
                                         dram_complete <= 1'b0;
                                         dram_ready <=1'b1;
                                         twr_cycles <=1'b0;
-
                                     end
 
                 BANK_ACTIVATE:      begin
@@ -189,6 +188,8 @@ import types::*;
 
                 PRECHARGE:          begin 
                                         // active to precharge delay
+                                        dram_ready <=1'b1;
+                                        dram_complete <= 1'b0;
                                         burst_count <= '0;
                                         precharge_cycle_count <= precharge_cycle_count + unsigned'(1);
                                     end
