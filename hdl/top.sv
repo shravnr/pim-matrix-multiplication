@@ -76,12 +76,14 @@ import types::*;
 
                                         if(valid) begin
                                             i <= i + 1;
+                                            if(PIM_ENABLE==0)
+                                                matrix_A[a_req_count*BURST_LEN + i] <= rdata;   // CACHELINE STYLE: CPU outside Mem 
 
-                                            //matrix_A[a_req_count*BURST_LEN + i] <= rdata;   // CACHELINE STYLE: CPU outside Mem 
-
-                                            //BURST_LENGTH = ROW_WIDTH                        // PIM- FULL ROW ACCESS
-                                            for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
-                                                matrix_A[a_req_count*(ROW_WIDTH/WIDTH) + y] <= rdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ];  
+                                            else if (PIM_ENABLE==1) begin
+                                                //BURST_LENGTH = ROW_WIDTH                        // PIM- FULL ROW ACCESS
+                                                for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
+                                                    matrix_A[a_req_count*(ROW_WIDTH/WIDTH) + y] <= rdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ];  
+                                            end
                                         end
 
                                         if(dram_complete) begin
@@ -100,23 +102,32 @@ import types::*;
 
                                         if(valid) begin
                                             i <= i + 1;
-                                            //matrix_B[b_req_count*BURST_LEN + i] <= rdata; //   // CACHELINE STYLE: CPU outside Mem 
+                                            if(PIM_ENABLE==0)
+                                                matrix_B[b_req_count*BURST_LEN + i] <= rdata; //   // CACHELINE STYLE: CPU outside Mem 
 
+                                            else if(PIM_ENABLE==1) begin
                                             //BURST_LENGTH = ROW_WIDTH                           // PIM- FULL ROW ACCESS
-                                            for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
-                                                matrix_B[b_req_count*(ROW_WIDTH/WIDTH) + y] <= rdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ];
+                                                for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
+                                                    matrix_B[b_req_count*(ROW_WIDTH/WIDTH) + y] <= rdata[ ((y+1)*WIDTH -1) -: (WIDTH-1) ];
+                                            end
+
                                         end
 
                                         if(dram_complete) begin
                                             i <= 0;
                                             b_req_count <= b_req_count + unsigned'(1);
                                             read_en = 1'b0;
-
-                                            //if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin              // CACHELINE STYLE: CPU outside Mem 
-                                            if (b_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin        // PIM- FULL ROW ACCESS
-                                                pim_unit_start <= 1'b1;
-
+                                            if(PIM_ENABLE==0) begin
+                                                if (b_req_count == MATRIX_SIZE**2/BURST_LEN)               // CACHELINE STYLE: CPU outside Mem 
+                                                    pim_unit_start <= 1'b1;
                                             end
+
+                                            else if(PIM_ENABLE==1) begin
+                                                if (b_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH))         // PIM- FULL ROW ACCESS
+                                                    pim_unit_start <= 1'b1;
+                                            end
+
+                                            
                                         end                                 
                                     end     
 
@@ -133,11 +144,13 @@ import types::*;
 
                                         if(valid) begin
                                             i <= i + 1;
-                                            //wdata <= result[w_req_count*BURST_LEN + i]; // CACHELINE STYLE: CPU outside Mem 
+                                            if(PIM_ENABLE==0)
+                                                wdata <= result[w_req_count*BURST_LEN + i]; // CACHELINE STYLE: CPU outside Mem
 
+                                            else if (PIM_ENABLE==1)
                                             //BURST_LENGTH = ROW_WIDTH                    // PIM- FULL ROW ACCESS
-                                            for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
-                                                wdata[y*WIDTH +: WIDTH] <= result[w_req_count*(ROW_WIDTH/WIDTH) + y];
+                                                for(int y=0; y<(ROW_WIDTH/WIDTH); y++)
+                                                    wdata[y*WIDTH +: WIDTH] <= result[w_req_count*(ROW_WIDTH/WIDTH) + y];
                                         end
 
                                         if(dram_complete) begin
@@ -164,22 +177,40 @@ import types::*;
                             
             READ_A:             begin
                                     if(dram_complete) begin
-                                        //if (a_req_count == MATRIX_SIZE**2/BURST_LEN) begin          // CACHELINE STYLE: CPU outside Mem
-                                        if (a_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin    // PIM- FULL ROW ACCESS
-                                            next_state = READ_B;
-                                            $display("- Start Reading Matrix B, Time = %0t ns", $time);
+                                        if(PIM_ENABLE==0) begin
+                                            if (a_req_count == MATRIX_SIZE**2/BURST_LEN) begin          // CACHELINE STYLE: CPU outside Mem
+                                                next_state = READ_B;
+                                                $display("- Start Reading Matrix B, Time = %0t ns", $time);
+                                            end
                                         end
+
+                                        else if(PIM_ENABLE==1) begin
+                                            if (a_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin    // PIM- FULL ROW ACCESS
+                                                next_state = READ_B;
+                                                $display("- Start Reading Matrix B, Time = %0t ns", $time);
+                                            end
+                                        end
+                                        
                                     end
                                 end
 
 
             READ_B:             begin
                                     if(dram_complete) begin
-                                        //if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin          // CACHELINE STYLE: CPU outside Mem
-                                        if (b_req_count == (MATRIX_SIZE**2)/(ROW_WIDTH/WIDTH)) begin  // PIM- FULL ROW ACCESS
-                                            next_state = COMPUTE;
-                                            $display("- Start Matmul Computing Time = %0t ns", $time);
+
+                                        if(PIM_ENABLE==0) begin
+                                            if (b_req_count == MATRIX_SIZE**2/BURST_LEN) begin          // CACHELINE STYLE: CPU outside Mem
+                                                next_state = COMPUTE;
+                                                $display("- Start Matmul Computing Time = %0t ns", $time);
+                                            end
                                         end
+                                        else if (PIM_ENABLE==1) begin
+                                            if (b_req_count == (MATRIX_SIZE**2)/(ROW_WIDTH/WIDTH)) begin  // PIM- FULL ROW ACCESS
+                                                next_state = COMPUTE;
+                                                $display("- Start Matmul Computing Time = %0t ns", $time);
+                                            end
+                                        end
+
                                     end
                                 end   
 
@@ -192,11 +223,21 @@ import types::*;
 
             WRITE_RESULT:       begin
                                     if(dram_complete) begin
-                                        //if (w_req_count == MATRIX_SIZE**2/BURST_LEN) begin          // CACHELINE STYLE: CPU outside Mem
-                                        if (w_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin    // PIM- FULL ROW ACCESS
-                                            next_state = IDLE;
-                                            $display("- Writing Done, Time = %0t ns", $time);
+                                        
+                                        if(PIM_ENABLE==0) begin
+                                            if (w_req_count == MATRIX_SIZE**2/BURST_LEN) begin          // CACHELINE STYLE: CPU outside Mem
+                                                next_state = IDLE;
+                                                $display("- Writing Done, Time = %0t ns", $time);
+                                            end
                                         end
+
+                                        else if (PIM_ENABLE==1) begin
+                                            if (w_req_count == MATRIX_SIZE**2/(ROW_WIDTH/WIDTH)) begin    // PIM- FULL ROW ACCESS
+                                                next_state = IDLE;
+                                                $display("- Writing Done, Time = %0t ns", $time);
+                                            end
+                                        end
+
                                     end
                                 end
         endcase

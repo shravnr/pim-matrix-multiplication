@@ -160,7 +160,7 @@ import types::*;
                                         rdata <= current_row[((burst_count + 1)*BURST_ACCESS_WIDTH - 1) -: (BURST_ACCESS_WIDTH-1)];
                                         burst_count <= burst_count + unsigned'(1);
                                         if(burst_count== BURST_LEN) begin
-                                            dram_complete <= 1'b1;
+                                            // dram_complete <= 1'b1;
                                             valid <= 1'b0;
                                             //dram_ready <= 1'b1;
                                         end
@@ -172,7 +172,7 @@ import types::*;
                                         current_row[((burst_count + 1)*BURST_ACCESS_WIDTH - 1) -: (BURST_ACCESS_WIDTH)]<= wdata;
                                         burst_count <= burst_count + unsigned'(1);
                                         if(burst_count == BURST_LEN) begin
-                                            dram_complete <= 1'b1;
+                                            // dram_complete <= 1'b1;
                                             valid <=1'b0;
                                         end
                                         // else if(next_state==IDLE)
@@ -192,12 +192,17 @@ import types::*;
                                         dram_complete <= 1'b0;
                                         burst_count <= '0;
                                         precharge_cycle_count <= precharge_cycle_count + unsigned'(1);
+
+                                        if(precharge_cycle_count == TRP_CYCLES) begin
+                                            dram_complete <= 1'b1;
+                                        end
                                     end
 
                 DONE:               begin
                                         precharge_cycle_count <= '0; 
                                         bank_activation_cycles_count <= '0;
-                                        burst_count <= '0;  
+                                        burst_count <= '0; 
+                                        dram_complete <= 1'b0; 
                                         dram_ready <= 1'b1;
                                     end
             endcase
