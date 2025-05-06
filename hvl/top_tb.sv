@@ -22,8 +22,6 @@ module top_tb;
     logic start;
 
 
- 
-    
 
     int fd, status;
     logic [ADDRESS_LEN-1:0] t_src1, t_src2, t_dst;
@@ -67,7 +65,8 @@ module top_tb;
 
     initial begin
         $fsdbDumpfile("dump.fsdb");
-        $value$plusargs("TIMEOUT_ECE511=%d", timeout);
+        //$value$plusargs("TIMEOUT_ECE511=%d", timeout);
+        timeout = 20000;
         if ($test$plusargs("NO_DUMP_ALL_ECE511")) begin
             $fsdbDumpvars(0, dut, "+all");
             $fsdbDumpoff();
@@ -83,7 +82,7 @@ module top_tb;
     //Power
     initial begin
         // Start toggle monitoring
-        $set_toggle_region("dut");  // 'dut' is the name of your memory module instance
+        $set_toggle_region("dut");
         $toggle_start();
 
         // Wait until simulation ends (or timeout)

@@ -9,7 +9,7 @@ import types::*;
     input logic start
 );
 
-    logic [ADDRESS_LEN-1:0] addr; // [LEN-1:0]
+    logic [ADDRESS_LEN-1:0] addr;
     logic        read_en;
     logic        write_en;
     logic [BURST_ACCESS_WIDTH-1:0] wdata; 
@@ -21,7 +21,7 @@ import types::*;
 
     
 
-    memory memory_inst (
+    top top_inst (
         .clk(clk),
         .rst(rst),
         .src1_addr(src1_addr),
