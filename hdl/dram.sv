@@ -25,10 +25,10 @@ import types::*;
     logic [ADDRESS_LEN-1:0] r_waddr;
 
     // Counters
-    logic [31:0] tRCD_cycle_count;
     logic [31:0] bank_activation_cycles_count;
     logic [31:0] precharge_cycle_count;
     logic [31:0] twr_cycles;
+    logic [31:0] tCL_cycle_count;
     logic [31:0] burst_count;
 
     // Memory FSM States
@@ -38,8 +38,8 @@ import types::*;
         READ_BURST,
         WRITE_BURST,
         PRECHARGE,
+        TCL,
         TWR,
-        TRCD,
         DONE
     } state_t;
 
@@ -69,21 +69,24 @@ import types::*;
                                     if(read_en==0 && write_en==0)
                                         next_state = IDLE;
 
-                                    if(bank_activation_cycles_count== (BANK_ACTIVATION_CYCLES + TRAS_CYCLES)) begin
+                                    if(bank_activation_cycles_count == TRCD_CYCLES) begin
                                         // Precharge everytime we switch row
                                         // if(read_en) next_state = READ_BURST;
                                         // else if (write_en) next_state = WRITE_BURST;
-                                        next_state = PRECHARGE;
+                                        next_state = TCL;
                                     end
                                 end
 
-            PRECHARGE:          if(precharge_cycle_count == PRECHARGE_CYCLES) begin
-                                    next_state= TRCD;
+            TCL:               begin
+                                    if(tCL_cycle_count == TCL_CYCLES) begin
+                                        if(read_en) next_state = READ_BURST;
+                                        else if (write_en) next_state = WRITE_BURST; 
+                                    end 
                                 end
 
             READ_BURST:         begin
                                     if(burst_count== BURST_LEN) begin
-                                        next_state = IDLE;
+                                        next_state = PRECHARGE;
                                     end
                                 end 
 
@@ -93,19 +96,16 @@ import types::*;
                                     end
                                 end 
 
-            TRCD:               begin
-                                    if(tRCD_cycle_count==TRCD_CYCLES) begin
-                                        if(read_en) next_state = READ_BURST;
-                                        else if (write_en) next_state = WRITE_BURST; 
-                                    end 
-                                end
-
             TWR:                begin
                                     if(twr_cycles == TWR_CYCLES)                
-                                        next_state= DONE;
+                                        next_state = PRECHARGE;
                                 end
 
-            DONE:               next_state=IDLE;
+            PRECHARGE:          if(precharge_cycle_count == TRP_CYCLES) begin
+                                    next_state = DONE;
+                                end
+
+            DONE:               next_state = IDLE;
                                 
         endcase
     end
@@ -115,7 +115,7 @@ import types::*;
         assign current_row = dram[0][addr];
 
         if(rst) begin // Initial Memory Population (Emulating "hex file")
-            tRCD_cycle_count <=0;
+            tCL_cycle_count <=0;
             bank_activation_cycles_count <=0;
             burst_count <=0;
             dram_ready<=1;
@@ -150,9 +150,13 @@ import types::*;
                                         dram_ready <=1'b0;
                                     end
 
-                READ_BURST:         begin
+                TCL:                begin
                                         bank_activation_cycles_count <= '0;
-                                        tRCD_cycle_count <= '0;
+                                        tCL_cycle_count <= tCL_cycle_count + unsigned'(1);
+                                    end
+
+                READ_BURST:         begin
+                                        tCL_cycle_count <= '0;
                                         valid <= 1'b1;
                                         rdata <= current_row[((burst_count + 1)*BURST_ACCESS_WIDTH - 1) -: (BURST_ACCESS_WIDTH-1)];
                                         burst_count <= burst_count + unsigned'(1);
@@ -164,7 +168,7 @@ import types::*;
                                     end
 
                 WRITE_BURST:        begin
-                                        tRCD_cycle_count <= '0;
+                                        tCL_cycle_count <= '0;
                                         valid <=1'b1;
                                         current_row[((burst_count + 1)*BURST_ACCESS_WIDTH - 1) -: (BURST_ACCESS_WIDTH)]<= wdata;
                                         burst_count <= burst_count + unsigned'(1);
@@ -176,29 +180,23 @@ import types::*;
                                         //    dram_complete<=1'b0;
                                     end
 
-
-                TRCD:               begin 
-                                        // active to r/w delay
-                                        precharge_cycle_count <= '0;       
-                                        tRCD_cycle_count <= tRCD_cycle_count + unsigned'(1);
-                                    end
-                
-
                 TWR:                begin 
                                         // write recovery time
+                                        burst_count <= '0;
                                         twr_cycles <= twr_cycles + unsigned'(1);
-                                        dram_complete =1'b0;
+                                        dram_complete <= 1'b0;
                                     end
 
                 PRECHARGE:          begin 
                                         // active to precharge delay
-                                        bank_activation_cycles_count <= '0;   
+                                        burst_count <= '0;
                                         precharge_cycle_count <= precharge_cycle_count + unsigned'(1);
                                     end
 
                 DONE:               begin
-                                        bank_activation_cycles_count <=0;
-                                        burst_count <=0;  
+                                        precharge_cycle_count <= '0; 
+                                        bank_activation_cycles_count <= '0;
+                                        burst_count <= '0;  
                                         dram_ready <= 1'b1;
                                     end
             endcase

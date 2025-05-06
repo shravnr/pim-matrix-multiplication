@@ -27,16 +27,20 @@ package types;
 
     parameter int BURST_LEN = 1;
     parameter int BURST_ACCESS_WIDTH = 65536;
-    parameter int PRECHARGE_CYCLES = 10;         //20ns
-    parameter int TRCD_CYCLES = 10;              //20ns
-    parameter int BANK_ACTIVATION_CYCLES = 7;    // 14 ns
-    parameter int TRAS_CYCLES = 22;              // 44 ns
-    parameter int TWR_CYCLES = 7;                // 14ns
     parameter int ROW_WIDTH = 65536;
     parameter int NUM_BANKS = 1;
     parameter int NUM_ROWS = 100;
     parameter int ADDRESS_LEN = 10;
     parameter int QUEUE_LEN = 1;
+    
+    // DDR3-1066 Model: tRCD + tCL + Read/Write Burst + (tWR) + tRP
+    parameter int TRCD_CYCLES = 8;                // 16 ns BANK_ACTIVATION_CYCLES
+    parameter int TCL_CYCLES = 8;                 // 16 ns
+    parameter int TRP_CYCLES = 8;                 // 16 ns PRECHARGE_CYCLES
+    parameter int TWR_CYCLES = 7;                 // 14 ns WAIT_AFTER_WRITE
+    
+    // parameter int TRCD_CYCLES = 10;              // 20 ns
+    // parameter int TRAS_CYCLES = 22;              // 44 ns
 
 endpackage
 
